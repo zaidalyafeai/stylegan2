@@ -72,14 +72,15 @@ class TFRecordDataset:
 
         # Determine shape and resolution.
         max_shape = max(tfr_shapes, key=np.prod)
-        self.resolution = resolution if resolution is not None else max_shape[1]
-        self.resolution_log2 = int(np.log2(self.resolution))
-        self.shape = [max_shape[0], self.resolution, self.resolution]
-        tfr_lods = [self.resolution_log2 - int(np.log2(shape[1])) for shape in tfr_shapes]
+#         self.resolution = resolution if resolution is not None else max_shape[1]
+#         self.resolution_log2 = int(np.log2(self.resolution))
+#         self.shape = [max_shape[0], self.resolution, self.resolution]
+#         tfr_lods = [self.resolution_log2 - int(np.log2(shape[1])) for shape in tfr_shapes]
+        self.shape = [max_shape[0], max_shape[1], max_shape[2]] 
         assert all(shape[0] == max_shape[0] for shape in tfr_shapes)
-        assert all(shape[1] == shape[2] for shape in tfr_shapes)
-        assert all(shape[1] == self.resolution // (2**lod) for shape, lod in zip(tfr_shapes, tfr_lods))
-        assert all(lod in tfr_lods for lod in range(self.resolution_log2 - 1))
+#         assert all(shape[1] == shape[2] for shape in tfr_shapes)
+#         assert all(shape[1] == self.resolution // (2**lod) for shape, lod in zip(tfr_shapes, tfr_lods))
+#         assert all(lod in tfr_lods for lod in range(self.resolution_log2 - 1))
 
         # Load labels.
         assert max_label_size == 'full' or max_label_size >= 0
@@ -96,16 +97,20 @@ class TFRecordDataset:
 
         # Build TF expressions.
         with tf.name_scope('Dataset'), tf.device('/cpu:0'):
+            
             self._tf_minibatch_in = tf.placeholder(tf.int64, name='minibatch_in', shape=[])
             self._tf_labels_var = tflib.create_var_with_large_initial_value(self._np_labels, name='labels_var')
             self._tf_labels_dataset = tf.data.Dataset.from_tensor_slices(self._tf_labels_var)
+            
             for tfr_file, tfr_shape, tfr_lod in zip(tfr_files, tfr_shapes, tfr_lods):
+                
                 if tfr_lod < 0:
                     continue
+                    
                 dset = tf.data.TFRecordDataset(tfr_file, compression_type='', buffer_size=buffer_mb<<20)
                 if max_images is not None:
                     dset = dset.take(max_images)
-                dset = dset.map(self.parse_tfrecord_tf, num_parallel_calls=num_threads)
+                dset = dset.map(self.parse_tfrecord_tf_raw, num_parallel_calls=num_threads)
                 dset = tf.data.Dataset.zip((dset, self._tf_labels_dataset))
                 bytes_per_item = np.prod(tfr_shape) * np.dtype(self.dtype).itemsize
                 if shuffle_mb > 0:
@@ -174,6 +179,18 @@ class TFRecordDataset:
         shape = ex.features.feature['shape'].int64_list.value # pylint: disable=no-member
         data = ex.features.feature['data'].bytes_list.value[0] # pylint: disable=no-member
         return np.fromstring(data, np.uint8).reshape(shape)
+   
+    @staticmethod
+    def parse_tfrecord_tf_raw(record):
+        features = tf.parse_single_example(
+            record,
+            features={
+                "shape": tf.FixedLenFeature([3], tf.int64),
+                "img": tf.FixedLenFeature([], tf.string),
+            },
+        )
+        image = tf.image.decode_image(features['img']) 
+        return tf.transpose(image, [2,0,1]) 
 
 #----------------------------------------------------------------------------
 # Helper func for constructing a dataset object using the given options.

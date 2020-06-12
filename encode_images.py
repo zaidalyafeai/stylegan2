@@ -10,6 +10,7 @@ import dnnlib.tflib as tflib
 import pretrained_networks
 from encoder.generator_model import Generator
 from encoder.perceptual_model import PerceptualModel
+from encoder.perceptual_model import load_images
 from keras.models import load_model
 from keras.applications.resnet50 import preprocess_input
 

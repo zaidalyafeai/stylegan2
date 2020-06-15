@@ -32,20 +32,20 @@ def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augm
             x = tf.where(tf.random_uniform([tf.shape(x)[0]]) < 0.5, x, tf.reverse(x, [2]))
     if spatial_augmentations:
         with tf.name_scope('SpatialAugmentations'):
-            choices = ['zoom in', 'zoom out', 'x_trans', 'y_trans', 'xy_trans', 'cutout']
+            choices = ['zoom in']
             choice = tf.random_uniform(shape=[], minval=0, maxval=len(choices), dtype=tf.int32, seed=None, name=None)
             if choice == 'zoom in':
-                x = zoom_in(x)
+                x = misc.zoom_in(x)
             elif choice == 'zoom out':
-                x = zoom_out(x)
+                x = misc.zoom_out(x)
             elif choice == 'x_trans':
-                x = X_translate(x)
+                x = misc.X_translate(x)
             elif choice == 'y_trans':
-                x = Y_translate(x)
+                x = misc.Y_translate(x)
             elif choice == 'xy_trans':
-                x = XY_translate(x)
+                x = misc.XY_translate(x)
             elif choice == 'cutout':
-                x = random_cutout(x)
+                x = misc.random_cutout(x)
 
     with tf.name_scope('FadeLOD'): # Smooth crossfade between consecutive levels-of-detail.
         s = tf.shape(x)

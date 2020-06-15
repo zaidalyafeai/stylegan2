@@ -12,7 +12,8 @@ import numpy as np
 import PIL.Image
 import PIL.ImageFont
 import dnnlib
-
+import glob
+import re
 #----------------------------------------------------------------------------
 # Convenience wrappers for pickle that are able to load data produced by
 # older versions of the code, and from external URLs.
@@ -25,6 +26,16 @@ def open_file_or_url(file_or_url):
 def load_pkl(file_or_url):
     with open_file_or_url(file_or_url) as file:
         return pickle.load(file, encoding='latin1')
+
+def locate_latest_pkl(result_dir):
+    allpickles = sorted(glob.glob(os.path.join(result_dir, '0*', 'network-*.pkl')))
+    if len(allpickles) == 0:
+        return None, 0.0
+    latest_pickle = allpickles[-1]
+    resume_run_id = os.path.basename(os.path.dirname(latest_pickle))
+    RE_KIMG = re.compile('network-snapshot-(\d+).pkl')
+    kimg = int(RE_KIMG.match(os.path.basename(latest_pickle)).group(1))
+    return (latest_pickle, float(kimg))
 
 def save_pkl(obj, filename):
     with open(filename, 'wb') as file:
@@ -77,6 +88,12 @@ def apply_mirror_augment(minibatch):
     mask = np.random.rand(minibatch.shape[0]) < 0.5
     minibatch = np.array(minibatch)
     minibatch[mask] = minibatch[mask, :, :, ::-1]
+    return minibatch
+
+def apply_mirror_augment_v(minibatch):
+    mask = np.random.rand(minibatch.shape[0]) < 0.5
+    minibatch = np.array(minibatch)
+    minibatch[mask] = minibatch[mask, :, ::-1, :]
     return minibatch
 
 #----------------------------------------------------------------------------

@@ -1,4 +1,103 @@
-## StyleGAN2 &mdash; Official TensorFlow Implementation
+![Teaser image](./fake_art_portrait.jpg)
+
+* Conditional model trained on WikiArt images [now available for download](https://archive.org/details/wikiart-stylegan2-conditional-model)
+* Take a look at the included notebooks for examples
+* Conditional support originally from @davidstap
+* port of my encoder from @robertluxemburg
+* fp16 branch from @veqtor
+* tpu and swarm branches from @shawwn
+* runwayml support from @genekogan
+
+<a href="https://open-app.runwayml.com/?model=pbaylies/stylegan2" target="_blank"><img src="https://open-app.runwayml.com/gh-badge.svg" /></a>
+
+**Various Improvements from skyflynil to make StyleGAN2 more suitible to be trained on Google Colab**
+* Supports Non-Square images, for example, 768x512, which basically as 6x4 (x2^7), or 640x384 as 5x3 (x2^7), etc.
+* Supports vertical mirror augmentation
+* Supports train from latest pkl automatically
+* Optimized dataset creation and access for non-progressive training and for colab training, which includes: create only the maximum size tfrecord; use raw JPEG instead of decoded numpy array, which reduce both tfrecord creation time and dataset size dramatically. (* Only tested for config-e and config-f, as no-progressive for these configurations)
+
+**Detailed instruction for training your stylegan2**
+
+* Create training image set. Instead of image size of 2^n * 2^n, now you can process your image size as of (min_h x 2^n) X (min_w * 2^n) natually. For example, 640x384, min_h = 5, min_w =3, n=7. Please make sure all your raw images are preprocessed to the exact same size. To reduce the training set size, JPEG format is preferred.
+* Create tfrecord, clone this repo, then
+```
+python dataset_tool.py create_from_images_raw dataset_dir raw_image_dir
+```
+* To train, for example, 640x384 training set
+```
+python run_training.py --num-gpus=your_gpu_num --data-dir=your_data_dir --config=config-e(or config_f) --dataset=your_data_set --mirror-augment=true --metric=none --total-kimg=12000 --min-h=5 --min-w=3 --res-log2=7 --result-dir=your_result_dir
+```
+
+**Tips for Colab training**
+* Clone this repo
+```
+%tensorflow_version 1.x
+import tensorflow as tf
+
+# Download the code
+!git clone https://github.com/skyflynil/stylegan2.git
+%cd stylegan2
+!nvcc test_nvcc.cu -o test_nvcc -run
+
+print('Tensorflow version: {}'.format(tf.__version__) )
+!nvidia-smi -L
+print('GPU Identified at: {}'.format(tf.test.gpu_device_name()))
+```
+* Tar your raw data and upload to google drive, share it as data_url
+* In colab, mount your google drive, and make a result dir if there is none, for example, 'stylegan2/results'
+```
+from google.colab import drive
+drive.mount("/content/drive", force_remount=True)
+```
+
+* download raw dataset to colab using 
+```
+!gdown data_url
+```
+* create your dataset for train
+```
+!mkdir dataset
+!tar -xf your_downloaded_tar
+!python dataset_tool.py create_from_images_raw ./dataset/dataset_name untared_raw_image_dir
+```
+* start training
+```
+!python run_training.py --num-gpus=1 --data-dir=./dataset --config=config-f --dataset=your_dataset_name --mirror-augment=true --metric=none --total-kimg=20000 --min-h=5 --min-w=3 --res-log2=7 --result-dir="/content/drive/My Drive/stylegan2/results"
+```
+and it will automatically resume from last saved pkl.
+
+* You may also save a generated tfrecord directly in your google drive, and pin your dataset dir to your google drive. The benefit of creating a new tfrecord everytime is: Google colab disconnects after around 9-12 hours, since there is no true randomness for tfrecord, you may end up using some data more often then others. Also, the read/transfer speed from mounted google drive is kind of slow. It only takes about 2 min to gdown and create dataset for 30k/2G jpeg files.
+
+* You may also try this to boost your instance memory before training. 
+
+https://github.com/googlecolab/colabtools/issues/253
+
+* For image size 1280x768 (hxw), you may choose (min_h, min_w, res_log2) as (10, 6, 7) or (5, 3, 8) , the latter setup is preferred due to deeper and smaller network, change res_log2 argument for dataset creation and training accordingly.
+```
+!python dataset_tool.py create_from_images_raw --res_log2=8 ./dataset/dataset_name untared_raw_image_dir
+!python run_training.py --num-gpus=1 --data-dir=./dataset --config=config-f --dataset=your_dataset_name --mirror-augment=true --metric=none --total-kimg=20000 --min-h=5 --min-w=3 --res-log2=8 --result-dir="/content/drive/My Drive/stylegan2/results"
+```
+* You may change relevant arguments in run_traing.py for fakeimage/checkpoint interval, D/G learning rate, and minibatch_gpu_base to suit your needs or workaround gpu memory issues.
+
+**Credits**
+* https://github.com/NVlabs/stylegan2
+* https://github.com/akanimax/msg-stylegan-tf
+* https://colab.research.google.com/drive/1ShgW6wohEFQtqs_znMna3dzrcVoABKIH
+
+
+## StyleGAN2 &mdash; Encoder for Official TensorFlow Implementation
+![Python 3.6](https://img.shields.io/badge/python-3.6-green.svg?style=plastic)
+![TensorFlow 1.10](https://img.shields.io/badge/tensorflow-1.10-green.svg?style=plastic)
+![cuDNN 7.3.1](https://img.shields.io/badge/cudnn-7.3.1-green.svg?style=plastic)
+![License CC BY-NC](https://img.shields.io/badge/license-CC_BY--NC-green.svg?style=plastic)
+
+This is an experimental port of [pbaylies/stylegan-encoder](https://github.com/pbaylies/stylegan-encoder) for [NVlabs/stylegan2](https://github.com/NVlabs/stylegan2).
+
+![Teaser image](./docs/stylegan2encoder-teaser-1024x256.png)
+
+To test this, try out the notebook.
+
+### Original Readme
 
 ![Teaser image](./docs/stylegan2-teaser-1024x256.png)
 
@@ -23,11 +122,11 @@ For press and other inquiries, please contact Hector Marinez at [hmarinez@nvidia
 | &boxv;&nbsp; &boxur;&nbsp;  [100k-generated-images](https://drive.google.com/open?id=1BA2OZ1GshdfFZGYZPob5QWOGBuJCdu5q) | Random images with and without truncation
 | &boxvr;&nbsp; [videos](https://drive.google.com/open?id=1yXDV96SFXoUiZKU7AyE6DyKgDpIk4wUZ) | Individual clips of the video as high-quality MP4
 | &boxur;&nbsp; [networks](https://drive.google.com/open?id=1yanUI9m4b4PWzR0eurKNq6JR1Bbfbh6L) | Pre-trained networks
-| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-ffhq-config-f.pkl](https://drive.google.com/open?id=1Mgh-jglZjgksupF0XLl0KzuOqd1LXcoE) | StyleGAN2 for <span style="font-variant:small-caps">FFHQ</span> dataset at 1024&times;1024
-| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-car-config-f.pkl](https://drive.google.com/open?id=1MutzVf8XjNo6TUg03a6CUU_2Vlc0ltbV) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Car</span> dataset at 512&times;384
-| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-cat-config-f.pkl](https://drive.google.com/open?id=1MyowTZGvMDJCWuT7Yg2e_GnTLIzcSPCy) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Cat</span> dataset at 256&times;256
-| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-church-config-f.pkl](https://drive.google.com/open?id=1N3iaujGpwa6vmKCqRSHcD6GZ2HVV8h1f) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Church</span> dataset at 256&times;256
-| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-horse-config-f.pkl](https://drive.google.com/open?id=1N55ZtBhEyEbDn6uKBjCNAew1phD5ZAh-) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Horse</span> dataset at 256&times;256
+| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-ffhq-config-f.pkl](http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/stylegan2-ffhq-config-f.pkl) | StyleGAN2 for <span style="font-variant:small-caps">FFHQ</span> dataset at 1024&times;1024
+| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-car-config-f.pkl](http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/stylegan2-car-config-f.pkl) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Car</span> dataset at 512&times;384
+| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-cat-config-f.pkl](http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/stylegan2-cat-config-f.pkl) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Cat</span> dataset at 256&times;256
+| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-church-config-f.pkl](http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/stylegan2-church-config-f.pkl) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Church</span> dataset at 256&times;256
+| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-horse-config-f.pkl](http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/stylegan2-horse-config-f.pkl) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Horse</span> dataset at 256&times;256
 | &ensp;&ensp; &boxur;&nbsp;&#x22ef;  | Other training configurations used in the paper
 
 ## Requirements
@@ -48,6 +147,32 @@ nvcc test_nvcc.cu -o test_nvcc -run
 ```
 
 On Windows, the compilation requires Microsoft Visual Studio to be in `PATH`. We recommend installing [Visual Studio Community Edition](https://visualstudio.microsoft.com/vs/) and adding into `PATH` using `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"`.
+
+## Using pre-trained networks
+
+Pre-trained networks are stored as `*.pkl` files on the [StyleGAN2 Google Drive folder](https://drive.google.com/open?id=1QHc-yF5C3DChRwSdZKcx1w6K8JvSxQi7). Below, you can either reference them directly using the syntax `gdrive:networks/<filename>.pkl`, or download them manually and reference by filename.
+
+```.bash
+# Generate uncurated ffhq images (matches paper Figure 12)
+python run_generator.py generate-images --network=gdrive:networks/stylegan2-ffhq-config-f.pkl \
+  --seeds=6600-6625 --truncation-psi=0.5
+
+# Generate curated ffhq images (matches paper Figure 11)
+python run_generator.py generate-images --network=gdrive:networks/stylegan2-ffhq-config-f.pkl \
+  --seeds=66,230,389,1518 --truncation-psi=1.0
+
+# Generate uncurated car images
+python run_generator.py generate-images --network=gdrive:networks/stylegan2-car-config-f.pkl \
+  --seeds=6000-6025 --truncation-psi=0.5
+
+# Example of style mixing (matches the corresponding video clip)
+python run_generator.py style-mixing-example --network=gdrive:networks/stylegan2-ffhq-config-f.pkl \
+  --row-seeds=85,100,75,458,1500 --col-seeds=55,821,1789,293 --truncation-psi=1.0
+```
+
+The results are placed in `results/<RUNNING_ID>/*.png`. You can change the location with `--result-dir`. For example, `--result-dir=~/my-stylegan2-results`.
+
+You can import the networks in your own Python code using `pickle.load()`. For this to work, you need to include the `dnnlib` source directory in `PYTHONPATH` and create a default TensorFlow session by calling `dnnlib.tflib.init_tf()`. See [run_generator.py](./run_generator.py) and [pretrained_networks.py](./pretrained_networks.py) for examples.
 
 ## Preparing datasets
 
@@ -80,33 +205,9 @@ python dataset_tool.py create_from_images ~/datasets/my-custom-dataset ~/my-cust
 python dataset_tool.py display ~/datasets/my-custom-dataset
 ```
 
-## Using pre-trained networks
+## Projecting images to latent space
 
-Pre-trained networks are stored as `*.pkl` files on the [StyleGAN2 Google Drive folder](https://drive.google.com/open?id=1QHc-yF5C3DChRwSdZKcx1w6K8JvSxQi7). Below, you can either reference them directly using the syntax `gdrive:networks/<filename>.pkl`, or download them manually and reference by filename.
-
-**Generating images**:
-
-```.bash
-# Generate uncurated ffhq images (matches paper Figure 12)
-python run_generator.py generate-images --network=gdrive:networks/stylegan2-ffhq-config-f.pkl \
-  --seeds=6600-6625 --truncation-psi=0.5
-
-# Generate curated ffhq images (matches paper Figure 11)
-python run_generator.py generate-images --network=gdrive:networks/stylegan2-ffhq-config-f.pkl \
-  --seeds=66,230,389,1518 --truncation-psi=1.0
-
-# Generate uncurated car images
-python run_generator.py generate-images --network=gdrive:networks/stylegan2-car-config-f.pkl \
-  --seeds=6000-6025 --truncation-psi=0.5
-
-# Example of style mixing (matches the corresponding video clip)
-python run_generator.py style-mixing-example --network=gdrive:networks/stylegan2-ffhq-config-f.pkl \
-  --row-seeds=85,100,75,458,1500 --col-seeds=55,821,1789,293 --truncation-psi=1.0
-```
-
-The results are placed in `results/<RUNNING_ID>/*.png`. You can change the location with `--result-dir`. For example, `--result-dir=~/my-stylegan2-results`.
-
-**Projecting images to latent space**:
+To find the matching latent vectors for a set of images, run:
 
 ```.bash
 # Project generated images
@@ -117,8 +218,6 @@ python run_projector.py project-generated-images --network=gdrive:networks/style
 python run_projector.py project-real-images --network=gdrive:networks/stylegan2-car-config-f.pkl \
   --dataset=car --data-dir=~/datasets
 ```
-
-You can import the networks in your own Python code using `pickle.load()`. For this to work, you need to include the `dnnlib` source directory in `PYTHONPATH` and create a default TensorFlow session by calling `dnnlib.tflib.init_tf()`. See [run_generator.py](./run_generator.py) and [pretrained_networks.py](./pretrained_networks.py) for examples.
 
 ## Training networks
 

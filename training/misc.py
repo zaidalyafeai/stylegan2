@@ -96,6 +96,232 @@ def apply_mirror_augment_v(minibatch):
     minibatch[mask] = minibatch[mask, :, ::-1, :]
     return minibatch
 
+def zoom_in(tf_img, alpha=0.1, target_image_shape=None, seed=None):
+  """
+  Random zoom in to TF image
+  Args:
+    image: 3-D tensor with a single image.
+    alpha: strength of augmentation
+    target_image_shape: List/Tuple with target image shape.
+  Returns:
+    Image tensor with shape `target_image_shape`.
+  """
+
+  # Set params
+  n = tf.random_uniform(shape=[], minval=1-alpha, maxval=1, dtype=tf.float32, seed=seed, name=None)
+  h, w, c = tf_img.shape
+
+  h_t = tf.cast(
+    h, dtype=tf.float32, name=None)
+  w_t = tf.cast(
+    w, dtype=tf.float32, name=None)
+  rnd_h = h_t*n
+  rnd_w = w_t*n
+  if target_image_shape is None:
+    target_image_shape = (h, w)
+
+  # Random crop
+  crop_size = [rnd_h, rnd_w, 3]
+  cropped_img = tf.image.random_crop(
+      tf_img,
+      crop_size,
+      seed=seed,
+      name=None
+  )
+
+  # resize back to original size
+  resized_img = tf.image.resize(
+      cropped_img, target_image_shape, method=tf.image.ResizeMethod.BILINEAR, preserve_aspect_ratio=False,
+      name=None
+  )
+  return resized_img
+
+
+def zoom_out(tf_img, alpha=0.1, target_image_shape=None, seed=None):
+  """
+  Random zoom out of TF image
+  Args:
+    img: 3-D tensor with a single image.
+    alpha: strength of augmentation
+    target_image_shape: List/Tuple with target image shape.
+  Returns:
+    Image tensor with shape `target_image_shape`.
+  """
+
+  # Set params
+  n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
+  h, w, c = tf_img.shape
+  if target_image_shape is None:
+    target_image_shape = (h, w)
+
+  # Pad image to size (1+2a)*H, (1+2a)*W
+  h_t = tf.cast(
+    h, dtype=tf.float32, name=None)
+  w_t = tf.cast(
+    w, dtype=tf.float32, name=None)
+  rnd_h = h_t*n
+  rnd_w = w_t*n
+  paddings = [[rnd_h, rnd_h], [rnd_w, rnd_w], [0, 0]]
+  padded_img = tf.pad(tf_img, paddings, 'REFLECT')
+  size = ((1+n) * h_t, (1+n) * w_t, c)
+
+  # Random crop to size (1+a)*H, (1+a)*W
+  r_cropped_img = tf.image.random_crop(
+      padded_img,
+      size,
+      seed=seed,
+      name=None
+  )
+
+  # Resize back to original size
+  resized_img = tf.image.resize(
+      r_cropped_img, (target_image_shape + (c,)), method=tf.image.ResizeMethod.BILINEAR, preserve_aspect_ratio=False,
+      name=None
+  )
+  return resized_img
+
+
+def X_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
+    """
+    Random X translation within TF image with reflection padding
+    Args:
+      image: 3-D tensor with a single image.
+      alpha: strength of augmentation
+      target_image_shape: List/Tuple with target image shape.
+    Returns:
+      Image tensor with shape `target_image_shape`.
+    """
+    n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
+
+    h, w, c = tf_img.shape
+    if target_image_shape is None:
+        target_image_shape = (h, w)
+
+    # Pad image to size H, (1+2a)*W
+    w_t = tf.cast(
+        w, dtype=tf.float32, name=None)
+    rnd_w = w_t * n
+    paddings = [[0, 0], [rnd_w, rnd_w], [0, 0]]
+    padded_img = tf.pad(tf_img, paddings, 'REFLECT')
+
+    # Random crop section at original size
+    X_trans = tf.image.random_crop(
+        padded_img,
+        (target_image_shape + (c,)),
+        seed=seed,
+        name=None)
+
+    return X_trans
+
+
+def XY_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
+  """
+  Random XY translation within TF image with reflection padding
+  Args:
+    image: 3-D tensor with a single image.
+    alpha: strength of augmentation
+    target_image_shape: List/Tuple with target image shape.
+  Returns:
+    Image tensor with shape `target_image_shape`.
+  """
+
+  n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
+  h, w, c = tf_img.shape
+  if target_image_shape is None:
+    target_image_shape = (h, w)
+
+  # Pad image to size (1+2a)*H, (1+2a)*W
+  h_t = tf.cast(
+    h, dtype=tf.float32, name=None)
+  w_t = tf.cast(
+    w, dtype=tf.float32, name=None)
+  rnd_h = h_t*n
+  rnd_w = w_t*n
+  paddings = [[rnd_h, rnd_h], [rnd_w, rnd_w], [0, 0]]
+  padded_img = tf.pad(tf_img, paddings, 'REFLECT')
+
+  # Random crop section at original size
+  XY_trans = tf.image.random_crop(
+      padded_img,
+      (target_image_shape + (c,)),
+      seed=seed,
+      name=None
+  )
+  return XY_trans
+
+
+def Y_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
+    """
+    Random Y translation within TF image with reflection padding
+    Args:
+      image: 3-D tensor with a single image.
+      alpha: strength of augmentation
+      target_image_shape: List/Tuple with target image shape.
+    Returns:
+      Image tensor with shape `target_image_shape`.
+    """
+    n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
+
+    h, w, c = tf_img.shape
+    if target_image_shape is None:
+        target_image_shape = (h, w)
+
+    # Pad image to size H, (1+2a)*W
+    w_t = tf.cast(
+        w, dtype=tf.float32, name=None)
+    rnd_w = w_t * n
+    paddings = [[0, 0], [rnd_w, rnd_w], [0, 0]]
+    padded_img = tf.pad(tf_img, paddings, 'REFLECT')
+
+    # Pad image to size (1+2a)*H, W
+    h_t = tf.cast(
+        h, dtype=tf.float32, name=None)
+    rnd_h = h_t * n
+    paddings = [[rnd_h, rnd_h], [0, 0], [0, 0]]
+    padded_img = tf.pad(tf_img, paddings, 'REFLECT')
+
+    # Random crop section at original size
+    Y_trans = tf.image.random_crop(
+        padded_img,
+        (target_image_shape + (c,)),
+        seed=seed,
+        name=None)
+
+    return Y_trans
+
+
+def random_cutout(tf_img, alpha=0.1, seed=None):
+    """
+    Cuts random black square out from TF image
+    Args:
+    image: 3-D tensor with a single image.
+    alpha: affects max size of square
+    target_image_shape: List/Tuple with target image shape.
+    Returns:
+    Cutout Image tensor
+    """
+
+    # get img shape
+    height, width, channel = tf_img.shape
+
+    # get square of random shape less than w*a, h*a
+    max_val = tf.cast(tf.minimum(alpha * int(width), alpha * int(height)), dtype = tf.int32)
+    size = tf.random_uniform(shape=[], minval=0, maxval=max_val, dtype=tf.int32, seed=seed, name=None)
+
+    # get random xy location of square
+    x_loc_upper_bound = width - size
+    y_loc_upper_bound = height - size
+
+    x = tf.random_uniform(shape=[], minval=0, maxval=x_loc_upper_bound, dtype=tf.int32, seed=seed, name=None)
+    y = tf.random_uniform(shape=[], minval=0, maxval=y_loc_upper_bound, dtype=tf.int32, seed=seed, name=None)
+
+    erase_area = tf.ones([size, size, 3], dtype=tf.float32)
+    if erase_area.shape == (0, 0, 3):
+        return tf_img
+    else:
+        mask = 1.0 - tf.image.pad_to_bounding_box(erase_area, y, x, height, width)
+        erased_img = tf.multiply(tf_img, mask)
+        return erased_img
 #----------------------------------------------------------------------------
 # Loading data from previous training runs.
 

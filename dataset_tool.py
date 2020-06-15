@@ -15,9 +15,7 @@ import tensorflow as tf
 
 import dnnlib.tflib as tflib
 from training import dataset
-
-
-# from scipy.misc import imresize
+#from scipy.misc import imresize
 
 
 # ----------------------------------------------------------------------------
@@ -91,7 +89,7 @@ class TFRecordExporter:
             )
             tfr_writer.write(ex.SerializeToString())
         self.cur_images += 1
-
+        
     def create_tfr_writer(self, shape):
         self.shape = [shape[2], shape[0], shape[1]]
         assert self.shape[0] in [1, 3]
@@ -101,9 +99,10 @@ class TFRecordExporter:
             tf.python_io.TFRecordCompressionType.NONE
         )
         tfr_file = self.tfr_prefix + "-r%02d.tfrecords" % (
-            self.res_log2
+                    self.res_log2
         )
         self.tfr_writers.append(tf.python_io.TFRecordWriter(tfr_file, tfr_opt))
+
 
     def add_image(self, img):
         if self.print_progress and self.cur_images % self.progress_interval == 0:
@@ -114,18 +113,18 @@ class TFRecordExporter:
             )
         if self.shape is None:
             self.shape = img.shape
-            # self.resolution_log2 = int(np.log2(self.shape[1]))
+            #self.resolution_log2 = int(np.log2(self.shape[1]))
             assert self.shape[0] in [1, 3]
-            # assert self.shape[1] == self.shape[2]
-            # assert self.shape[1] == 2 ** self.resolution_log2
+            #assert self.shape[1] == self.shape[2]
+            #assert self.shape[1] == 2 ** self.resolution_log2
             assert self.shape[1] % (2 ** self.res_log2) == 0
             assert self.shape[2] % (2 ** self.res_log2) == 0
             tfr_opt = tf.python_io.TFRecordOptions(
                 tf.python_io.TFRecordCompressionType.NONE
             )
             tfr_file = self.tfr_prefix + "-r%02d.tfrecords" % (
-                self.res_log2
-            )
+                        self.res_log2
+                )
             self.tfr_writers.append(tf.python_io.TFRecordWriter(tfr_file, tfr_opt))
             """
             for lod in range(self.resolution_log2 - 1):
@@ -655,7 +654,7 @@ def create_from_images(tfrecord_dir, image_dir, shuffle, res_log2=7, resize=None
     if len(image_filenames) == 0:
         error("No input images found")
     img = np.asarray(PIL.Image.open(image_filenames[0]))
-    # resolution = img.shape[0]
+    #resolution = img.shape[0]
     channels = img.shape[2] if img.ndim == 3 else 1
     """
     if resize is None:
@@ -676,8 +675,8 @@ def create_from_images(tfrecord_dir, image_dir, shuffle, res_log2=7, resize=None
             img = np.asarray(PIL.Image.open(image_filenames[order[idx]]))
             if resize is not None:
                 size = int(2 ** resize)
-                # img = imresize(img, (size, size))
-                img = np.array(Image.fromarray(img).resize((size, size)))
+                #img = imresize(img, (size, size))
+                img = np.array(Image.fromarray(img).resize((size, size))) 
             if channels == 1:
                 img = img[np.newaxis, :, :]  # HW => CHW
             else:
@@ -686,7 +685,6 @@ def create_from_images(tfrecord_dir, image_dir, shuffle, res_log2=7, resize=None
                 img = img[:3, ...]
             tfr.add_image(img)
 
-
 def create_from_images_raw(tfrecord_dir, image_dir, shuffle, res_log2=7, resize=None):
     print('Loading images from "%s"' % image_dir)
     image_filenames = _get_all_files(image_dir)
@@ -694,9 +692,9 @@ def create_from_images_raw(tfrecord_dir, image_dir, shuffle, res_log2=7, resize=
     if len(image_filenames) == 0:
         error("No input images found")
     img = np.asarray(PIL.Image.open(image_filenames[0]))
-    # resolution = img.shape[0]
+    #resolution = img.shape[0]
     channels = img.shape[2] if img.ndim == 3 else 1
-
+    
     if channels not in [1, 3]:
         error("Input images must be stored as RGB or grayscale")
     if shuffle:
@@ -709,12 +707,10 @@ def create_from_images_raw(tfrecord_dir, image_dir, shuffle, res_log2=7, resize=
         print("Adding the images to tfrecords ...")
         for idx in range(order.size):
             if idx % 1000 == 0:
-                print("added images", idx)
+                print ("added images", idx)
             with tf.gfile.FastGFile(image_filenames[order[idx]], 'rb') as fid:
                 encoded_jpg = fid.read()
                 tfr.add_image_raw(encoded_jpg)
-
-
 # ----------------------------------------------------------------------------
 
 
@@ -898,7 +894,7 @@ def execute_cmdline(argv):
         type=int,
         default=7
     )
-
+    
     p = add_command(
         "create_from_images_raw",
         "Create dataset from a directory full of images. Please be careful"
@@ -923,7 +919,7 @@ def execute_cmdline(argv):
         type=int,
         default=7
     )
-
+    
     p = add_command(
         "create_from_hdf5",
         "Create dataset from legacy HDF5 archive.",

@@ -20,7 +20,7 @@ from metrics import metric_base
 #----------------------------------------------------------------------------
 # Just-in-time processing of training images before feeding them to the networks.
 
-def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, drange_data, drange_net):
+def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augmentations, drange_data, drange_net):
     with tf.name_scope('DynamicRange'):
         x = tf.cast(x, tf.float32)
         x = misc.adjust_dynamic_range(x, drange_data, drange_net)
@@ -30,6 +30,23 @@ def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, drange_data,
     if mirror_augment_v:
         with tf.name_scope('MirrorAugment_V'):
             x = tf.where(tf.random_uniform([tf.shape(x)[0]]) < 0.5, x, tf.reverse(x, [2]))
+    if spatial_augmentations:
+        with tf.name_scope('SpatialAugmentations'):
+            choices = ['zoom in', 'zoom out', 'x_trans', 'y_trans', 'xy_trans', 'cutout']
+            choice = tf.random_uniform(shape=[], minval=0, maxval=len(choices), dtype=tf.int32, seed=None, name=None)
+            if choice == 'zoom in':
+                x = zoom_in(x)
+            elif choice == 'zoom out':
+                x = zoom_out(x)
+            elif choice == 'x_trans':
+                x = X_translate(x)
+            elif choice == 'y_trans':
+                x = Y_translate(x)
+            elif choice == 'xy_trans':
+                x = XY_translate(x)
+            elif choice == 'cutout':
+                x = random_cutout(x)
+
     with tf.name_scope('FadeLOD'): # Smooth crossfade between consecutive levels-of-detail.
         s = tf.shape(x)
         y = tf.reshape(x, [-1, s[1], s[2]//2, 2, s[3]//2, 2])
@@ -134,6 +151,7 @@ def training_loop(
     total_kimg              = 25000,    # Total length of the training, measured in thousands of real images.
     mirror_augment          = False,    # Enable mirror augment?
     mirror_augment_v        = False,    # Enable mirror augment vertically?
+    spatial_augmentations   = False,    # Enable spatial augmentations from Zhao et al 2020b
     drange_net              = [-1,1],   # Dynamic range used when feeding image data to the networks.
     image_snapshot_ticks    = 50,       # How often to save image snapshots? None = only save 'reals.png' and 'fakes-init.png'.
     network_snapshot_ticks  = 50,       # How often to save network snapshots? None = only save 'networks-final.pkl'.
@@ -237,7 +255,7 @@ def training_loop(
                 reals_var = tf.Variable(name='reals', trainable=False, initial_value=tf.zeros([sched.minibatch_gpu] + training_set.shape))
                 labels_var = tf.Variable(name='labels', trainable=False, initial_value=tf.zeros([sched.minibatch_gpu, training_set.label_size]))
                 reals_write, labels_write = training_set.get_minibatch_tf()
-                reals_write, labels_write = process_reals(reals_write, labels_write, lod_in, mirror_augment, mirror_augment_v, training_set.dynamic_range, drange_net)
+                reals_write, labels_write = process_reals(reals_write, labels_write, lod_in, mirror_augment, mirror_augment_v, spatial_augmentations, training_set.dynamic_range, drange_net)
                 reals_write = tf.concat([reals_write, reals_var[minibatch_gpu_in:]], axis=0)
                 labels_write = tf.concat([labels_write, labels_var[minibatch_gpu_in:]], axis=0)
                 data_fetch_ops += [tf.assign(reals_var, reals_write)]

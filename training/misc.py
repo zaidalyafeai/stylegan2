@@ -139,6 +139,7 @@ def zoom_in(tf_img, alpha=0.1, target_image_shape=None, seed=None):
       cropped_img, target_image_shape, method=tf.image.ResizeMethod.BILINEAR, preserve_aspect_ratio=False,
       name=None
   )
+
   return resized_img
 
 

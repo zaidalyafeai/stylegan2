@@ -60,7 +60,7 @@ def apply_random_aug(x):
             x = misc.random_cutout(x)
         return x
 
-def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augmentations, drange_data, drange_net):
+def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augmentations, drange_data, drange_net, dshape):
     with tf.name_scope('DynamicRange'):
         x = tf.cast(x, tf.float32)
         x = misc.adjust_dynamic_range(x, drange_data, drange_net)
@@ -72,15 +72,9 @@ def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augm
             x = tf.where(tf.random_uniform([tf.shape(x)[0]]) < 0.5, x, tf.reverse(x, [2]))
     if spatial_augmentations:
         with tf.name_scope('SpatialAugmentations'):
-            imgs = tf.data.Dataset.from_tensor_slices(x)
-            grid_size, grid_reals, grid_labels = misc.setup_snapshot_image_grid(imgs)
-            misc.save_image_grid(grid_reals, dnnlib.make_run_dir_path('reals_test.jpg'), drange=[-1,1],
-                                 grid_size=grid_size)
-
-            imgs = imgs.map(apply_random_aug)
-            grid_size, grid_reals, grid_labels = misc.setup_snapshot_image_grid(imgs)
-            misc.save_image_grid(grid_reals, dnnlib.make_run_dir_path('reals_augmented_test.jpg'), drange=[-1,1],
-                                 grid_size=grid_size)
+            s = tf.shape(x)
+            x.set_shape(s)
+            x = tf.map_fn(apply_random_aug, x)
     with tf.name_scope('FadeLOD'): # Smooth crossfade between consecutive levels-of-detail.
         s = tf.shape(x)
         y = tf.reshape(x, [-1, s[1], s[2]//2, 2, s[3]//2, 2])
@@ -289,7 +283,7 @@ def training_loop(
                 reals_var = tf.Variable(name='reals', trainable=False, initial_value=tf.zeros([sched.minibatch_gpu] + training_set.shape))
                 labels_var = tf.Variable(name='labels', trainable=False, initial_value=tf.zeros([sched.minibatch_gpu, training_set.label_size]))
                 reals_write, labels_write = training_set.get_minibatch_tf()
-                reals_write, labels_write = process_reals(reals_write, labels_write, lod_in, mirror_augment, mirror_augment_v, spatial_augmentations, training_set.dynamic_range, drange_net)
+                reals_write, labels_write = process_reals(reals_write, labels_write, lod_in, mirror_augment, mirror_augment_v, spatial_augmentations, training_set.dynamic_range, drange_net, training_set.shape)
                 reals_write = tf.concat([reals_write, reals_var[minibatch_gpu_in:]], axis=0)
                 labels_write = tf.concat([labels_write, labels_var[minibatch_gpu_in:]], axis=0)
                 data_fetch_ops += [tf.assign(reals_var, reals_write)]

@@ -115,7 +115,6 @@ def zoom_in(tf_img, alpha=0.1, target_image_shape=None, seed=None):
   shape = tf.shape(tf_img)
   h = shape[0]
   w = shape[1]
-  c = shape[2]
 
   h_t = tf.cast(
     h, dtype=tf.float32, name=None)

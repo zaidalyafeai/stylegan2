@@ -73,14 +73,13 @@ def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augm
             x = tf.where(tf.random_uniform([tf.shape(x)[0]]) < 0.5, x, tf.reverse(x, [2]))
     if spatial_augmentations:
         with tf.name_scope('SpatialAugmentations'):
-            print('PRE TRANSPOSE :')
-            print(x.get_shape())
+            print('DATA SHAPE:')
+            print(dshape)
+            x.set_shape(dshape)
             x = tf.transpose(x, [0, 2, 3, 1])
-            print('POST TRANSPOSE :')
-            print(x.get_shape())
+            print('BEFORE: ',x)
             x = tf.map_fn(apply_random_aug, x)
-            print('POST AUGMENT :')
-            print(x.get_shape())
+            print('AFTER: ',x)
             x = tf.transpose(x, [0, 3, 1, 2])
             print('POST AUGMENT/TRANSPOSE :')
             print(x.get_shape())
@@ -153,7 +152,7 @@ def training_schedule(
     #s.G_lrate = G_lrate_dict.get(s.resolution, G_lrate_base)
     #s.D_lrate = D_lrate_dict.get(s.resolution, D_lrate_base)
     s.G_lrate = G_lrate_base
-    s.D_lrate = D_lrate_base   
+    s.D_lrate = D_lrate_base
     if lrate_rampup_kimg > 0:
         rampup = min(s.kimg / lrate_rampup_kimg, 1.0)
         s.G_lrate *= rampup
@@ -292,7 +291,7 @@ def training_loop(
                 reals_var = tf.Variable(name='reals', trainable=False, initial_value=tf.zeros([sched.minibatch_gpu] + training_set.shape))
                 labels_var = tf.Variable(name='labels', trainable=False, initial_value=tf.zeros([sched.minibatch_gpu, training_set.label_size]))
                 reals_write, labels_write = training_set.get_minibatch_tf()
-                reals_write, labels_write = process_reals(reals_write, labels_write, lod_in, mirror_augment, mirror_augment_v, spatial_augmentations, training_set.dynamic_range, drange_net, training_set.shape)
+                reals_write, labels_write = process_reals(reals_write, labels_write, lod_in, mirror_augment, mirror_augment_v, spatial_augmentations, training_set.dynamic_range, drange_net, reals_var.shape)
                 reals_write = tf.concat([reals_write, reals_var[minibatch_gpu_in:]], axis=0)
                 labels_write = tf.concat([labels_write, labels_var[minibatch_gpu_in:]], axis=0)
                 data_fetch_ops += [tf.assign(reals_var, reals_write)]

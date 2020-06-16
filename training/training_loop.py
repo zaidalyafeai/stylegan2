@@ -33,7 +33,8 @@ def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augm
     if spatial_augmentations:
         with tf.name_scope('SpatialAugmentations'):
             choices = ['zoom in']
-            choice = tf.random_uniform(shape=[], minval=0, maxval=len(choices), dtype=tf.int32, seed=None, name=None)
+            choice = choices[tf.random_uniform(shape=[], minval=0, maxval=len(choices), dtype=tf.int32, seed=None, name=None).eval()]
+            print(choice)
             if choice == 'zoom in':
                 x = misc.zoom_in(x)
             elif choice == 'zoom out':

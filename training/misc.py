@@ -110,6 +110,7 @@ def zoom_in(tf_img, alpha=0.1, target_image_shape=None, seed=None):
   """
 
   # Set params
+  print('zooming in')
   n = tf.random_uniform(shape=[], minval=1-alpha, maxval=1, dtype=tf.float32, seed=seed, name=None)
   shape = tf.shape(tf_img)
   h = shape[0]
@@ -155,6 +156,7 @@ def zoom_out(tf_img, alpha=0.1, target_image_shape=None, seed=None):
   """
 
   # Set params
+  print('zooming out')
   n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
   h, w, c = tf_img.shape
   if target_image_shape is None:

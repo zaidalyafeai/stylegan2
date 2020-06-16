@@ -39,8 +39,8 @@ def _random_choice(inputs, n_samples=1):
 def apply_random_aug(x):
     with tf.name_scope('SpatialAugmentations'):
         choice = tf.random_uniform([], 0, 2, tf.int32)
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(0))), misc.zoom_in(x), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(1))), misc.zoom_in(x), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(0))), lambda: misc.zoom_in(x), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(1))), lambda: misc.zoom_in(x), lambda: tf.identity(x))
         # if :
         #     print('zooming in')
         #     x = misc.zoom_in(x)

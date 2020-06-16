@@ -14,6 +14,8 @@ import PIL.ImageFont
 import dnnlib
 import glob
 import re
+import tensorflow as tf
+
 #----------------------------------------------------------------------------
 # Convenience wrappers for pickle that are able to load data produced by
 # older versions of the code, and from external URLs.

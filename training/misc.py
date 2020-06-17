@@ -16,7 +16,8 @@ import glob
 import re
 import tensorflow as tf
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 # Convenience wrappers for pickle that are able to load data produced by
 # older versions of the code, and from external URLs.
 
@@ -25,9 +26,11 @@ def open_file_or_url(file_or_url):
         return dnnlib.util.open_url(file_or_url, cache_dir='.stylegan2-cache')
     return open(file_or_url, 'rb')
 
+
 def load_pkl(file_or_url):
     with open_file_or_url(file_or_url) as file:
         return pickle.load(file, encoding='latin1')
+
 
 def locate_latest_pkl(result_dir):
     allpickles = sorted(glob.glob(os.path.join(result_dir, '0*', 'network-*.pkl')))
@@ -39,19 +42,23 @@ def locate_latest_pkl(result_dir):
     kimg = int(RE_KIMG.match(os.path.basename(latest_pickle)).group(1))
     return (latest_pickle, float(kimg))
 
+
 def save_pkl(obj, filename):
     with open(filename, 'wb') as file:
         pickle.dump(obj, file, protocol=pickle.HIGHEST_PROTOCOL)
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 # Image utils.
 
 def adjust_dynamic_range(data, drange_in, drange_out):
     if drange_in != drange_out:
-        scale = (np.float32(drange_out[1]) - np.float32(drange_out[0])) / (np.float32(drange_in[1]) - np.float32(drange_in[0]))
+        scale = (np.float32(drange_out[1]) - np.float32(drange_out[0])) / (
+                    np.float32(drange_in[1]) - np.float32(drange_in[0]))
         bias = (np.float32(drange_out[0]) - np.float32(drange_in[0]) * scale)
         data = data * scale + bias
     return data
+
 
 def create_image_grid(images, grid_size=None):
     assert images.ndim == 3 or images.ndim == 4
@@ -67,24 +74,27 @@ def create_image_grid(images, grid_size=None):
     for idx in range(num):
         x = (idx % grid_w) * img_w
         y = (idx // grid_w) * img_h
-        grid[..., y : y + img_h, x : x + img_w] = images[idx]
+        grid[..., y: y + img_h, x: x + img_w] = images[idx]
     return grid
 
-def convert_to_pil_image(image, drange=[0,1]):
+
+def convert_to_pil_image(image, drange=[0, 1]):
     assert image.ndim == 2 or image.ndim == 3
     if image.ndim == 3:
         if image.shape[0] == 1:
-            image = image[0] # grayscale CHW => HW
+            image = image[0]  # grayscale CHW => HW
         else:
-            image = image.transpose(1, 2, 0) # CHW -> HWC
+            image = image.transpose(1, 2, 0)  # CHW -> HWC
 
-    image = adjust_dynamic_range(image, drange, [0,255])
+    image = adjust_dynamic_range(image, drange, [0, 255])
     image = np.rint(image).clip(0, 255).astype(np.uint8)
     fmt = 'RGB' if image.ndim == 3 else 'L'
     return PIL.Image.fromarray(image, fmt)
 
-def save_image_grid(images, filename, drange=[0,1], grid_size=None):
+
+def save_image_grid(images, filename, drange=[0, 1], grid_size=None):
     convert_to_pil_image(create_image_grid(images, grid_size), drange).save(filename)
+
 
 def apply_mirror_augment(minibatch):
     mask = np.random.rand(minibatch.shape[0]) < 0.5
@@ -92,103 +102,119 @@ def apply_mirror_augment(minibatch):
     minibatch[mask] = minibatch[mask, :, :, ::-1]
     return minibatch
 
+
 def apply_mirror_augment_v(minibatch):
     mask = np.random.rand(minibatch.shape[0]) < 0.5
     minibatch = np.array(minibatch)
     minibatch[mask] = minibatch[mask, :, ::-1, :]
     return minibatch
 
+
 def rand_crop(image, crop_h, crop_w):
-  shape = tf.shape(image)
-  h, w = shape[0], shape[1]
-  begin = [h - crop_h, w - crop_w] * tf.random.uniform([2], 0, 1)
-  begin = tf.cast(begin, tf.int64)
-  begin = tf.concat([begin, [0]], axis=0)  # Add channel dimension.
-  image = tf.slice(image, begin, [crop_h, crop_w, 3])
-  return image
-
-def zoom_in(tf_img, alpha=0.1, target_image_shape=None, seed=None):
-  """
-  Random zoom in to TF image
-  Args:
-    image: 3-D tensor with a single image.
-    alpha: strength of augmentation
-    target_image_shape: List/Tuple with target image shape.
-  Returns:
-    Image tensor with shape `target_image_shape`.
-  """
-
-  # Set params
-  print('zooming in')
-  n = tf.random_uniform(shape=[], minval=1-alpha, maxval=1, dtype=tf.float32, seed=seed, name=None)
-  shape = tf.shape(tf_img)
-  h = shape[0]
-  w = shape[1]
-  c = shape[2]
-  h_t = tf.cast(
-    h, dtype=tf.float32, name='height')
-  w_t = tf.cast(
-    w, dtype=tf.float32, name='width')
-  rnd_h = h_t*n
-  rnd_w = w_t*n
-  if target_image_shape is None:
-    target_image_shape = (h, w)
-
-  # Random crop
-  cropped_img = rand_crop(tf_img, rnd_h, rnd_w)
-
-  # resize back to original size
-  resized_img = tf.image.resize(
-      cropped_img, target_image_shape, method=tf.image.ResizeMethod.BILINEAR, preserve_aspect_ratio=False,
-      name=None
-  )
-
-  return resized_img
+    shape = tf.shape(image)
+    h, w = shape[0], shape[1]
+    begin = [h - crop_h, w - crop_w] * tf.random.uniform([2], 0, 1)
+    begin = tf.cast(begin, tf.int64)
+    begin = tf.concat([begin, [0]], axis=0)  # Add channel dimension.
+    image = tf.slice(image, begin, [crop_h, crop_w, 3])
+    return image
 
 
-def zoom_out(tf_img, alpha=0.1, target_image_shape=None, seed=None):
-  """
-  Random zoom out of TF image
-  Args:
-    img: 3-D tensor with a single image.
-    alpha: strength of augmentation
-    target_image_shape: List/Tuple with target image shape.
-  Returns:
-    Image tensor with shape `target_image_shape`.
-  """
+def zoom_in(tf_img, alpha=0.8, target_image_shape=None, seed=None):
+    """
+    Random zoom in to TF image
+    Args:
+      image: 3-D tensor with a single image.
+      alpha: strength of augmentation
+      target_image_shape: List/Tuple with target image shape.
+    Returns:
+      Image tensor with shape `target_image_shape`.
+    """
+    print('zooming in')
 
-  # Set params
-  print('zooming out')
-  n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
-  h, w, c = tf_img.shape
-  if target_image_shape is None:
-    target_image_shape = (h, w)
+    n = tf.random_uniform(shape=[], minval=1 - alpha, maxval=1, dtype=tf.float32, seed=seed, name=None)
+    shape = tf.shape(tf_img)
+    h = shape[0]
+    w = shape[1]
+    c = shape[2]
+    h_t = tf.cast(
+        h, dtype=tf.float32, name='height')
+    w_t = tf.cast(
+        w, dtype=tf.float32, name='width')
+    rnd_h = h_t * n
+    rnd_w = w_t * n
+    if target_image_shape is None:
+        target_image_shape = (h, w)
 
-  # Pad image to size (1+2a)*H, (1+2a)*W
-  h_t = tf.cast(
-    h, dtype=tf.float32, name=None)
-  w_t = tf.cast(
-    w, dtype=tf.float32, name=None)
-  rnd_h = h_t*n
-  rnd_w = w_t*n
-  paddings = [[rnd_h, rnd_h], [rnd_w, rnd_w], [0, 0]]
-  padded_img = tf.pad(tf_img, paddings, 'REFLECT')
+    # Random crop
+    rnd_h = tf.cast(
+        rnd_h, dtype=tf.int32, name='height')
+    rnd_w = tf.cast(
+        rnd_w, dtype=tf.int32, name='width')
+    cropped_img = rand_crop(tf_img, rnd_h, rnd_w)
+
+    # resize back to original size
+    resized_img = tf.image.resize(
+        cropped_img, target_image_shape, method=tf.image.ResizeMethod.BILINEAR, preserve_aspect_ratio=False,
+        name=None
+    )
+
+    return resized_img
 
 
-  # Random crop to size (1+a)*H, (1+a)*W
-  rnd_h = (1+n) * h_t
-  rnd_w = (1+n) * w_t
-  cropped_img = rand_crop(padded_img, rnd_h, rnd_w)
+def zoom_out(tf_img, alpha=0.8, target_image_shape=None, seed=None):
+    """
+    Random zoom out of TF image
+    Args:
+      img: 3-D tensor with a single image.
+      alpha: strength of augmentation
+      target_image_shape: List/Tuple with target image shape.
+    Returns:
+      Image tensor with shape `target_image_shape`.
+    """
 
-  # Resize back to original size
-  resized_img = tf.image.resize(
-      cropped_img, (target_image_shape + (c,)), method=tf.image.ResizeMethod.BILINEAR, preserve_aspect_ratio=False,
-      name=None
-  )
-  return resized_img
+    # Set params
+    print('zooming out')
+
+    n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
+
+    shape = tf.shape(tf_img)
+    h = shape[0]
+    w = shape[1]
+    c = shape[2]
+
+    if target_image_shape is None:
+        target_image_shape = (h, w)
+
+    # Pad image to size (1+2a)*H, (1+2a)*W
+    h_t = tf.cast(
+        h, dtype=tf.float32, name=None)
+    w_t = tf.cast(
+        w, dtype=tf.float32, name=None)
+    rnd_h = h_t * n
+    rnd_w = w_t * n
+    paddings = [[rnd_h, rnd_h], [rnd_w, rnd_w], [0, 0]]
+    padded_img = tf.pad(tf_img, paddings, 'REFLECT')
+
+    # Random crop to size (1+a)*H, (1+a)*W
+    rnd_h = (1 + n) * h_t
+    rnd_w = (1 + n) * w_t
+    rnd_h = tf.cast(
+        rnd_h, dtype=tf.int32, name='height')
+    rnd_w = tf.cast(
+        rnd_w, dtype=tf.int32, name='width')
+    cropped_img = rand_crop(padded_img, rnd_h, rnd_w)
+
+    # Resize back to original size
+    resized_img = tf.image.resize(
+        cropped_img, target_image_shape, method=tf.image.ResizeMethod.BILINEAR, preserve_aspect_ratio=False,
+        name=None
+    )
+
+    return resized_img
 
 
-def X_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
+def X_translate(tf_img, alpha=0.8, target_image_shape=None, seed=None):
     """
     Random X translation within TF image with reflection padding
     Args:
@@ -198,9 +224,15 @@ def X_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     Returns:
       Image tensor with shape `target_image_shape`.
     """
+    print('X translate')
+
     n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
 
-    h, w, c = tf_img.shape
+    shape = tf.shape(tf_img)
+    h = shape[0]
+    w = shape[1]
+    c = shape[2]
+
     if target_image_shape is None:
         target_image_shape = (h, w)
 
@@ -217,35 +249,36 @@ def X_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
 
 
 def XY_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
-  """
-  Random XY translation within TF image with reflection padding
-  Args:
-    image: 3-D tensor with a single image.
-    alpha: strength of augmentation
-    target_image_shape: List/Tuple with target image shape.
-  Returns:
-    Image tensor with shape `target_image_shape`.
-  """
+    """
+    Random XY translation within TF image with reflection padding
+    Args:
+      image: 3-D tensor with a single image.
+      alpha: strength of augmentation
+      target_image_shape: List/Tuple with target image shape.
+    Returns:
+      Image tensor with shape `target_image_shape`.
+    """
+    print('XY translate')
 
-  n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
-  h, w, c = tf_img.shape
-  if target_image_shape is None:
-    target_image_shape = (h, w)
+    n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
+    h, w, c = tf_img.shape
+    if target_image_shape is None:
+        target_image_shape = (h, w)
 
-  # Pad image to size (1+2a)*H, (1+2a)*W
-  h_t = tf.cast(
-    h, dtype=tf.float32, name=None)
-  w_t = tf.cast(
-    w, dtype=tf.float32, name=None)
-  rnd_h = h_t*n
-  rnd_w = w_t*n
-  paddings = [[rnd_h, rnd_h], [rnd_w, rnd_w], [0, 0]]
-  padded_img = tf.pad(tf_img, paddings, 'REFLECT')
+    # Pad image to size (1+2a)*H, (1+2a)*W
+    h_t = tf.cast(
+        h, dtype=tf.float32, name=None)
+    w_t = tf.cast(
+        w, dtype=tf.float32, name=None)
+    rnd_h = h_t * n
+    rnd_w = w_t * n
+    paddings = [[rnd_h, rnd_h], [rnd_w, rnd_w], [0, 0]]
+    padded_img = tf.pad(tf_img, paddings, 'REFLECT')
 
-  # Random crop section at original size
-  XY_trans = rand_crop(padded_img, h, w)
+    # Random crop section at original size
+    XY_trans = rand_crop(padded_img, h, w)
 
-  return XY_trans
+    return XY_trans
 
 
 def Y_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
@@ -258,6 +291,8 @@ def Y_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     Returns:
       Image tensor with shape `target_image_shape`.
     """
+    print('Y translate')
+
     n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
 
     h, w, c = tf_img.shape
@@ -291,7 +326,7 @@ def random_cutout(tf_img, alpha=0.1, seed=None):
     height, width, channel = tf_img.shape
 
     # get square of random shape less than w*a, h*a
-    max_val = tf.cast(tf.minimum(alpha * int(width), alpha * int(height)), dtype = tf.int32)
+    max_val = tf.cast(tf.minimum(alpha * int(width), alpha * int(height)), dtype=tf.int32)
     size = tf.random_uniform(shape=[], minval=0, maxval=max_val, dtype=tf.int32, seed=seed, name=None)
 
     # get random xy location of square
@@ -308,7 +343,9 @@ def random_cutout(tf_img, alpha=0.1, seed=None):
         mask = 1.0 - tf.image.pad_to_bounding_box(erase_area, y, x, height, width)
         erased_img = tf.multiply(tf_img, mask)
         return erased_img
-#----------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------
 # Loading data from previous training runs.
 
 def parse_config_for_previous_run(run_dir):
@@ -317,16 +354,19 @@ def parse_config_for_previous_run(run_dir):
     data = data.get('run_func_kwargs', {})
     return dict(train=data, dataset=data.get('dataset_args', {}))
 
-#----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
 # Size and contents of the image snapshot grids that are exported
 # periodically during training.
 
 def setup_snapshot_image_grid(training_set,
-    size    = '1080p',      # '1080p' = to be viewed on 1080p display, '4k' = to be viewed on 4k display.
-    layout  = 'random'):    # 'random' = grid contents are selected randomly, 'row_per_class' = each row corresponds to one class label.
+                              size='1080p',
+                              # '1080p' = to be viewed on 1080p display, '4k' = to be viewed on 4k display.
+                              layout='random'):  # 'random' = grid contents are selected randomly, 'row_per_class' = each row corresponds to one class label.
 
     # Select size.
-    gw = 1; gh = 1
+    gw = 1;
+    gh = 1
     if size == '1080p':
         gw = np.clip(1920 // training_set.shape[2], 3, 32)
         gh = np.clip(1080 // training_set.shape[1], 2, 32)
@@ -346,7 +386,7 @@ def setup_snapshot_image_grid(training_set,
         reals[:], labels[:] = training_set.get_minibatch_np(gw * gh)
 
     # Class-conditional layouts.
-    class_layouts = dict(row_per_class=[gw,1], col_per_class=[1,gh], class4x4=[4,4])
+    class_layouts = dict(row_per_class=[gw, 1], col_per_class=[1, gh], class4x4=[4, 4])
     if layout in class_layouts:
         bw, bh = class_layouts[layout]
         nw = (gw - 1) // bw + 1
@@ -363,7 +403,7 @@ def setup_snapshot_image_grid(training_set,
                     break
         for i, block in enumerate(blocks):
             for j, (real, label) in enumerate(block):
-                x = (i %  nw) * bw + j %  bw
+                x = (i % nw) * bw + j % bw
                 y = (i // nw) * bh + j // bw
                 if x < gw and y < gh:
                     reals[x + y * gw] = real[0]
@@ -371,4 +411,4 @@ def setup_snapshot_image_grid(training_set,
 
     return (gw, gh), reals, labels
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------

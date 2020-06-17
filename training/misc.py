@@ -261,7 +261,10 @@ def XY_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     print('XY translate')
 
     n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
-    h, w, c = tf_img.shape
+    shape = tf.shape(tf_img)
+    h = shape[0]
+    w = shape[1]
+    c = shape[2]
     if target_image_shape is None:
         target_image_shape = (h, w)
 
@@ -295,7 +298,11 @@ def Y_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
 
     n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
 
-    h, w, c = tf_img.shape
+    shape = tf.shape(tf_img)
+    h = shape[0]
+    w = shape[1]
+    c = shape[2]
+
     if target_image_shape is None:
         target_image_shape = (h, w)
 
@@ -311,6 +318,11 @@ def Y_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     return Y_trans
 
 
+@tf.function
+def pad_fn(erase_area, y, x, h, w):
+    return tf.image.pad_to_bounding_box(erase_area, y, x, h, w)
+
+
 def random_cutout(tf_img, alpha=0.1, seed=None):
     """
     Cuts random black square out from TF image
@@ -323,24 +335,35 @@ def random_cutout(tf_img, alpha=0.1, seed=None):
     """
 
     # get img shape
-    height, width, channel = tf_img.shape
-
+    shape = tf.shape(tf_img)
+    h = shape[0]
+    w = shape[1]
+    c = shape[2]
+    print('SHAPE: ')
+    print(shape)
     # get square of random shape less than w*a, h*a
-    max_val = tf.cast(tf.minimum(alpha * int(width), alpha * int(height)), dtype=tf.int32)
+    # max_val = tf.cast(tf.minimum(alpha * tf.cast(w, dtype=tf.int32), alpha * tf.cast(w, dtype=tf.int32)), dtype = tf.int32)
+    print(h)
+    max_val = 100
     size = tf.random_uniform(shape=[], minval=0, maxval=max_val, dtype=tf.int32, seed=seed, name=None)
 
+    print('SQUARE SIZE: ')
+    print(size)
+
     # get random xy location of square
-    x_loc_upper_bound = width - size
-    y_loc_upper_bound = height - size
+    x_loc_upper_bound = w - size
+    y_loc_upper_bound = h - size
 
     x = tf.random_uniform(shape=[], minval=0, maxval=x_loc_upper_bound, dtype=tf.int32, seed=seed, name=None)
     y = tf.random_uniform(shape=[], minval=0, maxval=y_loc_upper_bound, dtype=tf.int32, seed=seed, name=None)
 
-    erase_area = tf.ones([size, size, 3], dtype=tf.float32)
+    erase_area = tf.ones([5, 5, 3], dtype=tf.float32)
+    print('ERASE AREA: ')
+    print(erase_area)
     if erase_area.shape == (0, 0, 3):
         return tf_img
     else:
-        mask = 1.0 - tf.image.pad_to_bounding_box(erase_area, y, x, height, width)
+        mask = 1.0 - pad_fn(erase_area, y, x, h, w)
         erased_img = tf.multiply(tf_img, mask)
         return erased_img
 

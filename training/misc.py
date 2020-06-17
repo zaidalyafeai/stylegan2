@@ -98,6 +98,15 @@ def apply_mirror_augment_v(minibatch):
     minibatch[mask] = minibatch[mask, :, ::-1, :]
     return minibatch
 
+def rand_crop(image, crop_h, crop_w):
+  shape = tf.shape(image)
+  h, w = shape[0], shape[1]
+  begin = [h - crop_h, w - crop_w] * tf.random.uniform([2], 0, 1)
+  begin = tf.cast(begin, tf.int64)
+  begin = tf.concat([begin, [0]], axis=0)  # Add channel dimension.
+  image = tf.slice(image, begin, [crop_h, crop_w, 3])
+  return image
+
 def zoom_in(tf_img, alpha=0.1, target_image_shape=None, seed=None):
   """
   Random zoom in to TF image
@@ -115,24 +124,18 @@ def zoom_in(tf_img, alpha=0.1, target_image_shape=None, seed=None):
   shape = tf.shape(tf_img)
   h = shape[0]
   w = shape[1]
-
+  c = shape[2]
   h_t = tf.cast(
-    h, dtype=tf.float32, name=None)
+    h, dtype=tf.float32, name='height')
   w_t = tf.cast(
-    w, dtype=tf.float32, name=None)
+    w, dtype=tf.float32, name='width')
   rnd_h = h_t*n
   rnd_w = w_t*n
   if target_image_shape is None:
     target_image_shape = (h, w)
 
   # Random crop
-  crop_size = [rnd_h, rnd_w, 3]
-  cropped_img = tf.image.random_crop(
-      tf_img,
-      crop_size,
-      seed=seed,
-      name=None
-  )
+  cropped_img = rand_crop(tf_img, rnd_h, rnd_w)
 
   # resize back to original size
   resized_img = tf.image.resize(
@@ -170,19 +173,16 @@ def zoom_out(tf_img, alpha=0.1, target_image_shape=None, seed=None):
   rnd_w = w_t*n
   paddings = [[rnd_h, rnd_h], [rnd_w, rnd_w], [0, 0]]
   padded_img = tf.pad(tf_img, paddings, 'REFLECT')
-  size = ((1+n) * h_t, (1+n) * w_t, c)
+
 
   # Random crop to size (1+a)*H, (1+a)*W
-  r_cropped_img = tf.image.random_crop(
-      padded_img,
-      size,
-      seed=seed,
-      name=None
-  )
+  rnd_h = (1+n) * h_t
+  rnd_w = (1+n) * w_t
+  cropped_img = rand_crop(padded_img, rnd_h, rnd_w)
 
   # Resize back to original size
   resized_img = tf.image.resize(
-      r_cropped_img, (target_image_shape + (c,)), method=tf.image.ResizeMethod.BILINEAR, preserve_aspect_ratio=False,
+      cropped_img, (target_image_shape + (c,)), method=tf.image.ResizeMethod.BILINEAR, preserve_aspect_ratio=False,
       name=None
   )
   return resized_img
@@ -212,12 +212,7 @@ def X_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     padded_img = tf.pad(tf_img, paddings, 'REFLECT')
 
     # Random crop section at original size
-    X_trans = tf.image.random_crop(
-        padded_img,
-        (target_image_shape + (c,)),
-        seed=seed,
-        name=None)
-
+    X_trans = rand_crop(padded_img, h, w)
     return X_trans
 
 
@@ -248,12 +243,8 @@ def XY_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
   padded_img = tf.pad(tf_img, paddings, 'REFLECT')
 
   # Random crop section at original size
-  XY_trans = tf.image.random_crop(
-      padded_img,
-      (target_image_shape + (c,)),
-      seed=seed,
-      name=None
-  )
+  XY_trans = rand_crop(padded_img, h, w)
+
   return XY_trans
 
 
@@ -273,13 +264,6 @@ def Y_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     if target_image_shape is None:
         target_image_shape = (h, w)
 
-    # Pad image to size H, (1+2a)*W
-    w_t = tf.cast(
-        w, dtype=tf.float32, name=None)
-    rnd_w = w_t * n
-    paddings = [[0, 0], [rnd_w, rnd_w], [0, 0]]
-    padded_img = tf.pad(tf_img, paddings, 'REFLECT')
-
     # Pad image to size (1+2a)*H, W
     h_t = tf.cast(
         h, dtype=tf.float32, name=None)
@@ -288,12 +272,7 @@ def Y_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     padded_img = tf.pad(tf_img, paddings, 'REFLECT')
 
     # Random crop section at original size
-    Y_trans = tf.image.random_crop(
-        padded_img,
-        (target_image_shape + (c,)),
-        seed=seed,
-        name=None)
-
+    Y_trans = rand_crop(padded_img, h, w)
     return Y_trans
 
 

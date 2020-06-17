@@ -40,7 +40,12 @@ def apply_random_aug(x):
     with tf.name_scope('SpatialAugmentations'):
         choice = tf.random_uniform([], 0, 2, tf.int32)
         x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(0))), lambda: misc.zoom_in(x), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(1))), lambda: misc.zoom_in(x), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(1))), lambda: misc.zoom_out(x), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(2))), lambda: misc.X_translate(x), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(3))), lambda: misc.Y_translate(x), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(4))), lambda: misc.XY_translate(x), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(5))), lambda: misc.random_cutout(x), lambda: tf.identity(x))
+
         # if :
         #     print('zooming in')
         #     x = misc.zoom_in(x)
@@ -77,7 +82,6 @@ def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augm
             x = tf.transpose(x, [0, 2, 3, 1])
             x = tf.map_fn(apply_random_aug, x)
             x = tf.transpose(x, [0, 3, 1, 2])
-
     with tf.name_scope('FadeLOD'): # Smooth crossfade between consecutive levels-of-detail.
         s = tf.shape(x)
         y = tf.reshape(x, [-1, s[1], s[2]//2, 2, s[3]//2, 2])

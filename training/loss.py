@@ -10,16 +10,23 @@ import numpy as np
 import tensorflow as tf
 import dnnlib.tflib as tflib
 from dnnlib.tflib.autosummary import autosummary
+from training import misc
 
 #----------------------------------------------------------------------------
 # Logistic loss from the paper
 # "Generative Adversarial Nets", Goodfellow et al. 2014
+
+augment = True
 
 def G_logistic(G, D, opt, training_set, minibatch_size):
     _ = opt
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     labels = training_set.get_random_labels_tf(minibatch_size)
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
+    if augment:
+      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = -tf.nn.softplus(fake_scores_out) # log(1-sigmoid(fake_scores_out)) # pylint: disable=invalid-unary-operand-type
     return loss, None
@@ -29,6 +36,10 @@ def G_logistic_ns(G, D, opt, training_set, minibatch_size):
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     labels = training_set.get_random_labels_tf(minibatch_size)
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
+    if augment:
+      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
     return loss, None
@@ -37,6 +48,10 @@ def D_logistic(G, D, opt, training_set, minibatch_size, reals, labels):
     _ = opt, training_set
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
+    if augment:
+      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -53,6 +68,10 @@ def D_logistic_r1(G, D, opt, training_set, minibatch_size, reals, labels, gamma=
     _ = opt, training_set
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
+    if augment:
+      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -71,6 +90,10 @@ def D_logistic_r2(G, D, opt, training_set, minibatch_size, reals, labels, gamma=
     _ = opt, training_set
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
+    if augment:
+      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -94,6 +117,10 @@ def G_wgan(G, D, opt, training_set, minibatch_size):
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     labels = training_set.get_random_labels_tf(minibatch_size)
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
+    if augment:
+      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = -fake_scores_out
     return loss, None
@@ -102,6 +129,10 @@ def D_wgan(G, D, opt, training_set, minibatch_size, reals, labels, wgan_epsilon=
     _ = opt, training_set
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
+    if augment:
+      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -120,6 +151,10 @@ def D_wgan_gp(G, D, opt, training_set, minibatch_size, reals, labels, wgan_lambd
     _ = opt, training_set
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
+    if augment:
+      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -150,6 +185,10 @@ def G_logistic_ns_pathreg(G, D, opt, training_set, minibatch_size, pl_minibatch_
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     labels = training_set.get_random_labels_tf(minibatch_size)
     fake_images_out, fake_dlatents_out = G.get_output_for(latents, labels, is_training=True, return_dlatents=True)
+    if augment:
+      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
 

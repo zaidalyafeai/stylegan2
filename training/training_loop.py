@@ -19,32 +19,16 @@ from metrics import metric_base
 
 #----------------------------------------------------------------------------
 # Just-in-time processing of training images before feeding them to the networks.
-def _random_choice(inputs, n_samples=1):
-    """
-    With replacement.
-    Params:
-      inputs (Tensor): Shape [n_states, n_features]
-      n_samples (int): The number of random samples to take.
-    Returns:
-      sampled_inputs (Tensor): Shape [n_samples, n_features]
-    """
-    # (1, n_states) since multinomial requires 2D logits.
-    uniform_log_prob = tf.expand_dims(tf.zeros(tf.shape(inputs)[0]), 0)
 
-    ind = tf.multinomial(uniform_log_prob, n_samples)
-    ind = tf.squeeze(ind, 0, name="random_choice_ind")  # (n_samples,)
-
-    return tf.gather(inputs, ind, name="random_choice")
-
-def apply_random_aug(x):
+def apply_random_aug(x, seed=None):
     with tf.name_scope('SpatialAugmentations'):
-        choice = tf.random_uniform([], 0, 5, tf.int32)
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(0))), lambda: misc.zoom_in(x), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(1))), lambda: misc.zoom_out(x), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(2))), lambda: misc.X_translate(x), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(3))), lambda: misc.Y_translate(x), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(4))), lambda: misc.XY_translate(x), lambda: tf.identity(x))
-        # x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(5))), lambda: misc.random_cutout(x), lambda: tf.identity(x))
+        choice = tf.random_uniform([], 0, 6, tf.int32, seed=seed)
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(0))), lambda: misc.zoom_in(x, seed=seed), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(1))), lambda: misc.zoom_out(x, seed=seed), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(2))), lambda: misc.X_translate(x, seed=seed), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(3))), lambda: misc.Y_translate(x, seed=seed), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(4))), lambda: misc.XY_translate(x, seed=seed), lambda: tf.identity(x))
+        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(5))), lambda: misc.random_cutout(x, seed=seed), lambda: tf.identity(x))
         return x
 
 def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augmentations, drange_data, drange_net):
@@ -65,9 +49,6 @@ def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augm
         with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
             tf.summary.image("pre-augment", pre)
             tf.summary.image("post-augment", post)
-
-
-
 
     with tf.name_scope('FadeLOD'): # Smooth crossfade between consecutive levels-of-detail.
         s = tf.shape(x)

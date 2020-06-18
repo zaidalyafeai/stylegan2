@@ -109,6 +109,7 @@ def apply_mirror_augment_v(minibatch):
     minibatch[mask] = minibatch[mask, :, ::-1, :]
     return minibatch
 
+
 def apply_random_aug(x, seed=None):
     with tf.name_scope('SpatialAugmentations'):
         choice = tf.random_uniform([], 0, 6, tf.int32, seed=seed)

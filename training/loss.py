@@ -11,12 +11,17 @@ import tensorflow as tf
 import dnnlib.tflib as tflib
 from dnnlib.tflib.autosummary import autosummary
 from training import misc
+import os
 
 #----------------------------------------------------------------------------
 # Logistic loss from the paper
 # "Generative Adversarial Nets", Goodfellow et al. 2014
 
-augment = True
+spatial_augmentations = int(os.environ.get('SPATIAL_AUGS', '0'))
+if spatial_augmentations:
+  augment = True
+else:
+  augment = False
 
 def G_logistic(G, D, opt, training_set, minibatch_size):
     _ = opt

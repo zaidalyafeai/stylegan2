@@ -20,17 +20,6 @@ from metrics import metric_base
 #----------------------------------------------------------------------------
 # Just-in-time processing of training images before feeding them to the networks.
 
-def apply_random_aug(x, seed=None):
-    with tf.name_scope('SpatialAugmentations'):
-        choice = tf.random_uniform([], 0, 6, tf.int32, seed=seed)
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(0))), lambda: misc.zoom_in(x, seed=seed), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(1))), lambda: misc.zoom_out(x, seed=seed), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(2))), lambda: misc.X_translate(x, seed=seed), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(3))), lambda: misc.Y_translate(x, seed=seed), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(4))), lambda: misc.XY_translate(x, seed=seed), lambda: tf.identity(x))
-        x = tf.cond(tf.reduce_all(tf.equal(choice, tf.constant(5))), lambda: misc.random_cutout(x, seed=seed), lambda: tf.identity(x))
-        return x
-
 def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augmentations, drange_data, drange_net):
     with tf.name_scope('DynamicRange'):
         x = tf.cast(x, tf.float32)
@@ -44,7 +33,7 @@ def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augm
     if spatial_augmentations:
         with tf.name_scope('SpatialAugmentations'):
             pre = tf.transpose(x, [0, 2, 3, 1])
-            post = tf.map_fn(apply_random_aug, pre)
+            post = tf.map_fn(misc.apply_random_aug, pre)
             x = tf.transpose(post, [0, 3, 1, 2])
         with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
             tf.summary.image("pre-augment", pre)

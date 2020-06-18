@@ -51,6 +51,10 @@ def run(dataset, data_dir, result_dir, config_id, num_gpus, total_kimg, gamma, m
     train.mirror_augment = mirror_augment
     train.mirror_augment_v = mirror_augment_v
     train.spatial_augmentations = spatial_augmentations
+    if spatial_augmentations:
+      os.environ['SPATIAL_AUGS'] = "1"
+    else:
+      os.environ['SPATIAL_AUGS'] = "0"
     train.image_snapshot_ticks = 1
     train.network_snapshot_ticks = 1
     sched.D_lrate_base = lr

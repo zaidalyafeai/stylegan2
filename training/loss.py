@@ -34,10 +34,6 @@ def G_logistic(G, D, opt, training_set, minibatch_size):
         fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
         fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
         fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
-        if save_image_summaries:
-            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
-                tf.summary.image("G_fakes_pre-augment", fake_images_out_pre_augment)
-                tf.summary.image("G_fakes_post-augment", fake_images_out_post_augment)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = -tf.nn.softplus(fake_scores_out) # log(1-sigmoid(fake_scores_out)) # pylint: disable=invalid-unary-operand-type
     return loss, None
@@ -51,10 +47,6 @@ def G_logistic_ns(G, D, opt, training_set, minibatch_size):
         fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
         fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
         fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
-        if save_image_summaries:
-            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
-                tf.summary.image("G_fakes_pre-augment", fake_images_out_pre_augment)
-                tf.summary.image("G_fakes_post-augment", fake_images_out_post_augment)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
     return loss, None
@@ -67,10 +59,6 @@ def D_logistic(G, D, opt, training_set, minibatch_size, reals, labels):
         fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
         fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
         fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
-        if save_image_summaries:
-            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
-                tf.summary.image("D_fakes_pre-augment", fake_images_out_pre_augment)
-                tf.summary.image("D_fakes_post-augment", fake_images_out_post_augment)
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -91,10 +79,6 @@ def D_logistic_r1(G, D, opt, training_set, minibatch_size, reals, labels, gamma=
         fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
         fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
         fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
-        if save_image_summaries:
-            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
-                tf.summary.image("D_fakes_pre-augment", fake_images_out_pre_augment)
-                tf.summary.image("D_fakes_post-augment", fake_images_out_post_augment)
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -117,10 +101,6 @@ def D_logistic_r2(G, D, opt, training_set, minibatch_size, reals, labels, gamma=
         fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
         fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
         fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
-        if save_image_summaries:
-            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
-                tf.summary.image("D_fakes_pre-augment", fake_images_out_pre_augment)
-                tf.summary.image("D_fakes_post-augment", fake_images_out_post_augment)
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -148,10 +128,6 @@ def G_wgan(G, D, opt, training_set, minibatch_size):
         fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
         fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
         fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
-        if save_image_summaries:
-            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
-                tf.summary.image("G_fakes_pre-augment", fake_images_out_pre_augment)
-                tf.summary.image("G_fakes_post-augment", fake_images_out_post_augment)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = -fake_scores_out
     return loss, None
@@ -164,10 +140,6 @@ def D_wgan(G, D, opt, training_set, minibatch_size, reals, labels, wgan_epsilon=
         fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
         fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
         fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
-        if save_image_summaries:
-            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
-                tf.summary.image("D_fakes_pre-augment", fake_images_out_pre_augment)
-                tf.summary.image("D_fakes_post-augment", fake_images_out_post_augment)
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -190,10 +162,6 @@ def D_wgan_gp(G, D, opt, training_set, minibatch_size, reals, labels, wgan_lambd
         fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
         fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
         fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
-        if save_image_summaries:
-            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
-                tf.summary.image("D_fakes_pre-augment", fake_images_out_pre_augment)
-                tf.summary.image("D_fakes_post-augment", fake_images_out_post_augment)
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -228,10 +196,6 @@ def G_logistic_ns_pathreg(G, D, opt, training_set, minibatch_size, pl_minibatch_
         fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
         fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
         fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
-        if save_image_summaries:
-            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
-                tf.summary.image("G_fakes_pre-augment", fake_images_out_pre_augment)
-                tf.summary.image("G_fakes_post-augment", fake_images_out_post_augment)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
 

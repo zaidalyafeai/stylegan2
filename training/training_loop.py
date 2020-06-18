@@ -299,7 +299,10 @@ def training_loop(
         G.setup_weight_histograms(); D.setup_weight_histograms()
     metrics = metric_base.MetricGroup(metric_arg_list)
 
+
     print('Training for %d kimg...\n' % total_kimg)
+    if spatial_augmentations:
+        print('Augmenting fakes and reals\n')
     dnnlib.RunContext.get().update('', cur_epoch=resume_kimg, max_epoch=total_kimg)
     maintenance_time = dnnlib.RunContext.get().get_last_update_interval()
     cur_nimg = int(resume_kimg * 1000)

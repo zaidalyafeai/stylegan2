@@ -23,15 +23,21 @@ if spatial_augmentations:
 else:
   augment = False
 
+save_image_summaries = int(os.environ.get('SPATIAL_AUGS_IMAGE_SUMMARIES', '0'))
+
 def G_logistic(G, D, opt, training_set, minibatch_size):
     _ = opt
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     labels = training_set.get_random_labels_tf(minibatch_size)
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
     if augment:
-      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
-      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
-      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+        fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+        fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        if save_image_summaries:
+            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
+                tf.summary.image("G_fakes_pre-augment", fake_images_out_pre_augment)
+                tf.summary.image("G_fakes_post-augment", fake_images_out_post_augment)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = -tf.nn.softplus(fake_scores_out) # log(1-sigmoid(fake_scores_out)) # pylint: disable=invalid-unary-operand-type
     return loss, None
@@ -42,9 +48,13 @@ def G_logistic_ns(G, D, opt, training_set, minibatch_size):
     labels = training_set.get_random_labels_tf(minibatch_size)
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
     if augment:
-      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
-      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
-      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+        fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+        fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        if save_image_summaries:
+            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
+                tf.summary.image("G_fakes_pre-augment", fake_images_out_pre_augment)
+                tf.summary.image("G_fakes_post-augment", fake_images_out_post_augment)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
     return loss, None
@@ -54,9 +64,13 @@ def D_logistic(G, D, opt, training_set, minibatch_size, reals, labels):
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
     if augment:
-      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
-      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
-      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+        fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+        fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        if save_image_summaries:
+            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
+                tf.summary.image("D_fakes_pre-augment", fake_images_out_pre_augment)
+                tf.summary.image("D_fakes_post-augment", fake_images_out_post_augment)
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -74,9 +88,13 @@ def D_logistic_r1(G, D, opt, training_set, minibatch_size, reals, labels, gamma=
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
     if augment:
-      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
-      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
-      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+        fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+        fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        if save_image_summaries:
+            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
+                tf.summary.image("D_fakes_pre-augment", fake_images_out_pre_augment)
+                tf.summary.image("D_fakes_post-augment", fake_images_out_post_augment)
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -96,9 +114,13 @@ def D_logistic_r2(G, D, opt, training_set, minibatch_size, reals, labels, gamma=
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
     if augment:
-      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
-      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
-      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+        fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+        fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        if save_image_summaries:
+            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
+                tf.summary.image("D_fakes_pre-augment", fake_images_out_pre_augment)
+                tf.summary.image("D_fakes_post-augment", fake_images_out_post_augment)
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -123,9 +145,13 @@ def G_wgan(G, D, opt, training_set, minibatch_size):
     labels = training_set.get_random_labels_tf(minibatch_size)
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
     if augment:
-      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
-      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
-      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+        fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+        fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        if save_image_summaries:
+            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
+                tf.summary.image("G_fakes_pre-augment", fake_images_out_pre_augment)
+                tf.summary.image("G_fakes_post-augment", fake_images_out_post_augment)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = -fake_scores_out
     return loss, None
@@ -135,9 +161,13 @@ def D_wgan(G, D, opt, training_set, minibatch_size, reals, labels, wgan_epsilon=
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
     if augment:
-      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
-      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
-      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+        fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+        fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        if save_image_summaries:
+            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
+                tf.summary.image("D_fakes_pre-augment", fake_images_out_pre_augment)
+                tf.summary.image("D_fakes_post-augment", fake_images_out_post_augment)
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -157,9 +187,13 @@ def D_wgan_gp(G, D, opt, training_set, minibatch_size, reals, labels, wgan_lambd
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
     if augment:
-      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
-      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
-      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+        fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+        fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        if save_image_summaries:
+            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
+                tf.summary.image("D_fakes_pre-augment", fake_images_out_pre_augment)
+                tf.summary.image("D_fakes_post-augment", fake_images_out_post_augment)
     real_scores_out = D.get_output_for(reals, labels, is_training=True)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     real_scores_out = autosummary('Loss/scores/real', real_scores_out)
@@ -191,9 +225,13 @@ def G_logistic_ns_pathreg(G, D, opt, training_set, minibatch_size, pl_minibatch_
     labels = training_set.get_random_labels_tf(minibatch_size)
     fake_images_out, fake_dlatents_out = G.get_output_for(latents, labels, is_training=True, return_dlatents=True)
     if augment:
-      fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
-      fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
-      fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+        fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+        fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+        if save_image_summaries:
+            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
+                tf.summary.image("G_fakes_pre-augment", fake_images_out_pre_augment)
+                tf.summary.image("G_fakes_post-augment", fake_images_out_post_augment)
     fake_scores_out = D.get_output_for(fake_images_out, labels, is_training=True)
     loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
 
@@ -206,6 +244,10 @@ def G_logistic_ns_pathreg(G, D, opt, training_set, minibatch_size, pl_minibatch_
             pl_latents = tf.random_normal([pl_minibatch] + G.input_shapes[0][1:])
             pl_labels = training_set.get_random_labels_tf(pl_minibatch)
             fake_images_out, fake_dlatents_out = G.get_output_for(pl_latents, pl_labels, is_training=True, return_dlatents=True)
+            if augment:
+                fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+                fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+                fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
 
         # Compute |J*y|.
         pl_noise = tf.random_normal(tf.shape(fake_images_out)) / np.sqrt(np.prod(G.output_shape[2:]))

@@ -132,7 +132,7 @@ def rand_crop(image, crop_h, crop_w, seed=None):
     return image
 
 
-def zoom_in(tf_img, alpha=0.3, target_image_shape=None, seed=None):
+def zoom_in(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     """
     Random zoom in to TF image
     Args:
@@ -171,7 +171,7 @@ def zoom_in(tf_img, alpha=0.3, target_image_shape=None, seed=None):
     return resized_img
 
 
-def zoom_out(tf_img, alpha=0.3, target_image_shape=None, seed=None):
+def zoom_out(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     """
     Random zoom out of TF image
     Args:
@@ -220,7 +220,7 @@ def zoom_out(tf_img, alpha=0.3, target_image_shape=None, seed=None):
     return resized_img
 
 
-def X_translate(tf_img, alpha=0.3, target_image_shape=None, seed=None):
+def X_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     """
     Random X translation within TF image with reflection padding
     Args:
@@ -251,7 +251,7 @@ def X_translate(tf_img, alpha=0.3, target_image_shape=None, seed=None):
     return X_trans
 
 
-def XY_translate(tf_img, alpha=0.3, target_image_shape=None, seed=None):
+def XY_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     """
     Random XY translation within TF image with reflection padding
     Args:
@@ -283,7 +283,7 @@ def XY_translate(tf_img, alpha=0.3, target_image_shape=None, seed=None):
     return XY_trans
 
 
-def Y_translate(tf_img, alpha=0.3, target_image_shape=None, seed=None):
+def Y_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     """
     Random Y translation within TF image with reflection padding
     Args:
@@ -340,9 +340,9 @@ def _pad_to_bounding_box(image, offset_height, offset_width, target_height,
     paddings = tf.reshape(tf.stack([offset_height, after_padding_height, offset_width, after_padding_width, 0, 0]), [3, 2])
     return tf.pad(image, paddings)
 
-def random_cutout(tf_img, alpha=0.3, seed=None):
+def random_cutout(tf_img, alpha=0.1, seed=None):
     """
-    Cuts random black square out from TF image
+    Cuts random black square out of TF image
     Args:
     image: 3-D tensor with a single image.
     alpha: affects max size of square

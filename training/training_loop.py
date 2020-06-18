@@ -16,6 +16,9 @@ from dnnlib.tflib.autosummary import autosummary
 from training import dataset
 from training import misc
 from metrics import metric_base
+import os
+
+save_image_summaries = int(os.environ.get('SPATIAL_AUGS_IMAGE_SUMMARIES', '0'))
 
 #----------------------------------------------------------------------------
 # Just-in-time processing of training images before feeding them to the networks.
@@ -35,9 +38,10 @@ def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augm
             pre = tf.transpose(x, [0, 2, 3, 1])
             post = tf.map_fn(misc.apply_random_aug, pre)
             x = tf.transpose(post, [0, 3, 1, 2])
-        with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
-            tf.summary.image("pre-augment", pre)
-            tf.summary.image("post-augment", post)
+        if save_image_summaries:
+            with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
+                tf.summary.image("reals_pre-augment", pre)
+                tf.summary.image("reals_post-augment", post)
 
     with tf.name_scope('FadeLOD'): # Smooth crossfade between consecutive levels-of-detail.
         s = tf.shape(x)

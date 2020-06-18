@@ -95,6 +95,14 @@ def convert_to_pil_image(image, drange=[0, 1]):
 def save_image_grid(images, filename, drange=[0, 1], grid_size=None):
     convert_to_pil_image(create_image_grid(images, grid_size), drange).save(filename)
 
+# ----------------------------------------------------------------------------
+# Image Augmentations.
+
+alpha_override = float(os.environ.get('SPATIAL_AUGS_ALPHA', '0'))
+if alpha_override >= 1:
+  alpha_override = 0.999
+elif alpha_override == 0.0:
+  alpha_override = 0
 
 def apply_mirror_augment(minibatch):
     mask = np.random.rand(minibatch.shape[0]) < 0.5
@@ -142,6 +150,8 @@ def zoom_in(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     Returns:
       Image tensor with shape `target_image_shape`.
     """
+    if alpha_override > 0:
+      alpha = alpha_override
     n = tf.random_uniform(shape=[], minval=1 - alpha, maxval=1, dtype=tf.float32, seed=seed, name=None)
     shape = tf.shape(tf_img)
     h = shape[0]
@@ -181,7 +191,8 @@ def zoom_out(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     Returns:
       Image tensor with shape `target_image_shape`.
     """
-
+    if alpha_override > 0:
+      alpha = alpha_override
     # Set params
     n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
 
@@ -230,6 +241,8 @@ def X_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     Returns:
       Image tensor with shape `target_image_shape`.
     """
+    if alpha_override > 0:
+      alpha = alpha_override
     n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
 
     shape = tf.shape(tf_img)
@@ -261,6 +274,8 @@ def XY_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     Returns:
       Image tensor with shape `target_image_shape`.
     """
+    if alpha_override > 0:
+      alpha = alpha_override
     n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
     shape = tf.shape(tf_img)
     h = shape[0]
@@ -293,6 +308,8 @@ def Y_translate(tf_img, alpha=0.1, target_image_shape=None, seed=None):
     Returns:
       Image tensor with shape `target_image_shape`.
     """
+    if alpha_override > 0:
+      alpha = alpha_override
     n = tf.random_uniform(shape=[], minval=0, maxval=alpha, dtype=tf.float32, seed=seed, name=None)
 
     shape = tf.shape(tf_img)
@@ -350,6 +367,8 @@ def random_cutout(tf_img, alpha=0.1, seed=None):
     Returns:
     Cutout Image tensor
     """
+    if alpha_override > 0:
+      alpha = alpha_override
 
     # get img shape
     shape = tf.shape(tf_img)

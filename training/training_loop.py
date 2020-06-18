@@ -42,7 +42,6 @@ def process_reals(x, labels, lod, mirror_augment, mirror_augment_v, spatial_augm
             with tf.name_scope('ImageSummaries'), tf.device('/cpu:0'):
                 tf.summary.image("reals_pre-augment", pre)
                 tf.summary.image("reals_post-augment", post)
-
     with tf.name_scope('FadeLOD'): # Smooth crossfade between consecutive levels-of-detail.
         s = tf.shape(x)
         y = tf.reshape(x, [-1, s[1], s[2]//2, 2, s[3]//2, 2])
@@ -303,10 +302,21 @@ def training_loop(
         G.setup_weight_histograms(); D.setup_weight_histograms()
     metrics = metric_base.MetricGroup(metric_arg_list)
 
-
-    print('Training for %d kimg...\n' % total_kimg)
     if spatial_augmentations:
-        print('Augmenting fakes and reals\n')
+        print('Augmenting fakes and reals')
+        alpha_override = float(os.environ.get('SPATIAL_AUGS_ALPHA', '0'))
+        if alpha_override == 0.0:
+          print('Augmentation alpha at default setting of 0.1 - change by setting SPATIAL_AUGS_ALPHA environment variable')
+        else:
+          if alpha_override >= 1:
+            alpha_override = 0.999
+          print(f'Augmentation alpha set to {alpha_override}')
+        if save_image_summaries:
+          print('Saving image summaries to tensorboard')
+    print('Training for %d kimg...\n' % total_kimg)
+
+
+
     dnnlib.RunContext.get().update('', cur_epoch=resume_kimg, max_epoch=total_kimg)
     maintenance_time = dnnlib.RunContext.get().get_last_update_interval()
     cur_nimg = int(resume_kimg * 1000)

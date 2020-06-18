@@ -208,10 +208,13 @@ def G_logistic_ns_pathreg(G, D, opt, training_set, minibatch_size, pl_minibatch_
             pl_latents = tf.random_normal([pl_minibatch] + G.input_shapes[0][1:])
             pl_labels = training_set.get_random_labels_tf(pl_minibatch)
             fake_images_out, fake_dlatents_out = G.get_output_for(pl_latents, pl_labels, is_training=True, return_dlatents=True)
-            if augment:
-                fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
-                fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
-                fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
+            # TODO: applying augmentations here fails with the following error:
+            # TypeError: Second-order gradient for while loops not supported.
+            # setting pl_minibatch_shrink to 1 would work - but will have a higher memory usage
+            # if augment:
+            #     fake_images_out_pre_augment = tf.transpose(fake_images_out, [0, 2, 3, 1])
+            #     fake_images_out_post_augment = tf.map_fn(misc.apply_random_aug, fake_images_out_pre_augment)
+            #     fake_images_out = tf.transpose(fake_images_out_post_augment, [0, 3, 1, 2])
 
         # Compute |J*y|.
         pl_noise = tf.random_normal(tf.shape(fake_images_out)) / np.sqrt(np.prod(G.output_shape[2:]))

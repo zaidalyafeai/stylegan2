@@ -40,7 +40,7 @@ class TFRecordExporter:
         self.expected_images = expected_images
         self.cur_images = 0
         self.shape = None
-        #self.resolution_log2 = None
+        # self.resolution_log2 = None
         self.res_log2 = res_log2
         self.tfr_writers = []
         self.print_progress = print_progress
@@ -83,7 +83,7 @@ class TFRecordExporter:
                         "shape": tf.train.Feature(
                             int64_list=tf.train.Int64List(value=self.shape)
                         ),
-                        "img":tf.train.Feature(bytes_list=tf.train.BytesList(value=[encoded_jpg]))
+                        "img": tf.train.Feature(bytes_list=tf.train.BytesList(value=[encoded_jpg]))
                     }
                 )
             )

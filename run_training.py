@@ -33,7 +33,7 @@ _valid_configs = [
 
 #----------------------------------------------------------------------------
 
-def run(dataset, data_dir, result_dir, config_id, num_gpus, total_kimg, gamma, mirror_augment, mirror_augment_v, metrics, min_h, min_w, res_log2, lr, cond, resume_pkl, resume_kimg):
+def run(dataset, data_dir, result_dir, config_id, num_gpus, total_kimg, gamma, mirror_augment, mirror_augment_v, spatial_augmentations, metrics, min_h, min_w, res_log2, lr, cond, resume_pkl, resume_kimg):
     train     = EasyDict(run_func_name='training.training_loop.training_loop') # Options for training loop.
     G         = EasyDict(func_name='training.networks_stylegan2.G_main')       # Options for generator network.
     D         = EasyDict(func_name='training.networks_stylegan2.D_stylegan2')  # Options for discriminator network.
@@ -50,6 +50,11 @@ def run(dataset, data_dir, result_dir, config_id, num_gpus, total_kimg, gamma, m
     train.total_kimg = total_kimg
     train.mirror_augment = mirror_augment
     train.mirror_augment_v = mirror_augment_v
+    train.spatial_augmentations = spatial_augmentations
+    if spatial_augmentations:
+      os.environ['SPATIAL_AUGS'] = "1"
+    else:
+      os.environ['SPATIAL_AUGS'] = "0"
     train.image_snapshot_ticks = 1
     train.network_snapshot_ticks = 1
     sched.D_lrate_base = lr
@@ -177,6 +182,7 @@ def main():
     parser.add_argument('--gamma', help='R1 regularization weight (default is config dependent)', default=None, type=float)
     parser.add_argument('--mirror-augment', help='Mirror augment (default: %(default)s)', default=False, metavar='BOOL', type=_str_to_bool)
     parser.add_argument('--mirror-augment-v', help='Mirror augment vertically (default: %(default)s)', default=False, metavar='BOOL', type=_str_to_bool)
+    parser.add_argument('--spatial-augmentations', help='Add random spatial augmentations from Zhao et al 2020b (default: %(default)s)', default=False, metavar='BOOL', type=_str_to_bool)
     parser.add_argument('--metrics', help='Comma-separated list of metrics or "none" (default: %(default)s)', default='fid50k', type=_parse_comma_sep)
     parser.add_argument('--min-h', help='lowest dim of height', default=4, type=int)
     parser.add_argument('--min-w', help='lowest dim of width', default=4, type=int)

@@ -76,6 +76,7 @@ class TFRecordDataset:
         prefetch_mb=2048,  # Amount of data to prefetch (megabytes), 0 = disable prefetching.
         buffer_mb=256,  # Read buffer size (megabytes).
         num_threads=2,
+        use_raw=True,
     ):  # Number of concurrent threads.
 
         self.tfrecord_dir = tfrecord_dir
@@ -109,8 +110,10 @@ class TFRecordDataset:
                 tf.python_io.TFRecordCompressionType.NONE
             )
             for record in tf.python_io.tf_record_iterator(tfr_file, tfr_opt):
-                tfr_shapes.append(parse_tfrecord_np(record).shape)
-                #tfr_shapes.append(parse_tfrecord_np_raw(record))
+                if use_raw:
+                    tfr_shapes.append(parse_tfrecord_np_raw(record))
+                else:
+                    tfr_shapes.append(parse_tfrecord_np(record).shape)
                 break
 
         # Autodetect label filename.
@@ -163,8 +166,10 @@ class TFRecordDataset:
             dset = tf.data.TFRecordDataset(
                 tfr_file, compression_type="", buffer_size=buffer_mb << 20
             )
-            dset = dset.map(parse_tfrecord_tf, num_parallel_calls=num_threads)
-            #dset = dset.map(parse_tfrecord_tf_raw, num_parallel_calls=num_threads)
+            if use_raw:
+                dset = dset.map(parse_tfrecord_tf_raw, num_parallel_calls=num_threads)
+            else:
+                dset = dset.map(parse_tfrecord_tf, num_parallel_calls=num_threads)
             dset = tf.data.Dataset.zip((dset, self._tf_labels_dataset))
             bytes_per_item = np.prod(tfr_shape) * np.dtype(self.dtype).itemsize
             if shuffle_mb > 0:

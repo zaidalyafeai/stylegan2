@@ -109,6 +109,7 @@ def training_schedule(
     s.minibatch_size = minibatch_size_base
     s.minibatch_gpu = minibatch_gpu_base
     # Learning rate.
+    # Removed dict reading, no progressive training support here
     #s.G_lrate = G_lrate_dict.get(s.resolution, G_lrate_base)
     #s.D_lrate = D_lrate_dict.get(s.resolution, D_lrate_base)
     s.G_lrate = G_lrate_base
@@ -338,7 +339,9 @@ def training_loop(
         prev_lod = sched.lod
 
         # Run training ops.
-        feed_dict = {lod_in: sched.lod, lrate_in: sched.G_lrate, minibatch_size_in: sched.minibatch_size, minibatch_gpu_in: sched.minibatch_gpu}
+        # Seperate to two feed_dict, G/D rate matters for G/D train and reg optimizers, not for data_fetch_op and Gs_update_op
+        feed_dict_g = {lod_in: sched.lod, lrate_in: sched.G_lrate, minibatch_size_in: sched.minibatch_size, minibatch_gpu_in: sched.minibatch_gpu}
+        feed_dict_d = {lod_in: sched.lod, lrate_in: sched.D_lrate, minibatch_size_in: sched.minibatch_size, minibatch_gpu_in: sched.minibatch_gpu}
         for _repeat in range(minibatch_repeats):
             rounds = range(0, sched.minibatch_size, sched.minibatch_gpu * num_gpus)
             run_G_reg = (lazy_regularization and running_mb_counter % G_reg_interval == 0)
@@ -348,27 +351,27 @@ def training_loop(
 
             # Fast path without gradient accumulation.
             if len(rounds) == 1:
-                tflib.run([G_train_op, data_fetch_op], feed_dict)
+                tflib.run([G_train_op, data_fetch_op], feed_dict_g)
                 if run_G_reg:
-                    tflib.run(G_reg_op, feed_dict)
-                tflib.run([D_train_op, Gs_update_op], feed_dict)
+                    tflib.run(G_reg_op, feed_dict_g)
+                tflib.run([D_train_op, Gs_update_op], feed_dict_d)
                 if run_D_reg:
-                    tflib.run(D_reg_op, feed_dict)
+                    tflib.run(D_reg_op, feed_dict_d)
 
             # Slow path with gradient accumulation.
             else:
                 for _round in rounds:
-                    tflib.run(G_train_op, feed_dict)
+                    tflib.run(G_train_op, feed_dict_g)
                 if run_G_reg:
                     for _round in rounds:
-                        tflib.run(G_reg_op, feed_dict)
-                tflib.run(Gs_update_op, feed_dict)
+                        tflib.run(G_reg_op, feed_dict_g)
+                tflib.run(Gs_update_op, feed_dict_g)
                 for _round in rounds:
-                    tflib.run(data_fetch_op, feed_dict)
-                    tflib.run(D_train_op, feed_dict)
+                    tflib.run(data_fetch_op, feed_dict_d)
+                    tflib.run(D_train_op, feed_dict_d)
                 if run_D_reg:
                     for _round in rounds:
-                        tflib.run(D_reg_op, feed_dict)
+                        tflib.run(D_reg_op, feed_dict_d)
 
         # Perform maintenance tasks once per tick.
         done = (cur_nimg >= total_kimg * 1000)

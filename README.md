@@ -79,6 +79,12 @@ https://github.com/googlecolab/colabtools/issues/253
 ```
 * You may change relevant arguments in run_traing.py for fakeimage/checkpoint interval, D/G learning rate, and minibatch_gpu_base to suit your needs or workaround gpu memory issues.
 
+* Stylegan2 removed the capability of setting learning rate of G/D seperately. Added it back but did not test much, you may use --dlr and --glr to overwrite the D/G's base learning rate
+
+* Added google attention option to certain D/G layer. You may try it with specifying --use-attention=true
+* if the tfrecord is created using create_from_images (instead of create_from_images_raw), please specify --use-raw=false
+* Also, exposed resume_with_new_nets to command line. The example usage would be, network trained without attention, but now you want to try the network with attention module, you can specify --resume_with_new_nets=true to copy weights from checkpoints.
+
 **Credits**
 * https://github.com/NVlabs/stylegan2
 * https://github.com/akanimax/msg-stylegan-tf

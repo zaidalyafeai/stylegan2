@@ -1,63 +1,67 @@
-# Copyright (c) 2019, NVIDIA Corporation. All rights reserved.
+# Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
 #
-# This work is made available under the Nvidia Source Code License-NC.
-# To view a copy of this license, visit
-# https://nvlabs.github.io/stylegan2/license.html
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
 
-"""Linear Separability (LS)."""
+"""Linear Separability (LS) from the paper
+"A Style-Based Generator Architecture for Generative Adversarial Networks"."""
 
+import pickle
 from collections import defaultdict
 import numpy as np
 import sklearn.svm
 import tensorflow as tf
+import dnnlib
 import dnnlib.tflib as tflib
 
 from metrics import metric_base
-from training import misc
 
 #----------------------------------------------------------------------------
 
 classifier_urls = [
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-00-male.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-01-smiling.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-02-attractive.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-03-wavy-hair.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-04-young.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-05-5-o-clock-shadow.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-06-arched-eyebrows.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-07-bags-under-eyes.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-08-bald.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-09-bangs.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-10-big-lips.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-11-big-nose.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-12-black-hair.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-13-blond-hair.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-14-blurry.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-15-brown-hair.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-16-bushy-eyebrows.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-17-chubby.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-18-double-chin.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-19-eyeglasses.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-20-goatee.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-21-gray-hair.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-22-heavy-makeup.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-23-high-cheekbones.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-24-mouth-slightly-open.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-25-mustache.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-26-narrow-eyes.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-27-no-beard.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-28-oval-face.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-29-pale-skin.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-30-pointy-nose.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-31-receding-hairline.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-32-rosy-cheeks.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-33-sideburns.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-34-straight-hair.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-35-wearing-earrings.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-36-wearing-hat.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-37-wearing-lipstick.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-38-wearing-necklace.pkl',
-    'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/celebahq-classifier-39-wearing-necktie.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-00-male.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-01-smiling.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-02-attractive.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-03-wavy-hair.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-04-young.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-05-5-o-clock-shadow.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-06-arched-eyebrows.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-07-bags-under-eyes.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-08-bald.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-09-bangs.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-10-big-lips.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-11-big-nose.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-12-black-hair.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-13-blond-hair.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-14-blurry.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-15-brown-hair.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-16-bushy-eyebrows.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-17-chubby.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-18-double-chin.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-19-eyeglasses.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-20-goatee.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-21-gray-hair.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-22-heavy-makeup.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-23-high-cheekbones.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-24-mouth-slightly-open.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-25-mustache.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-26-narrow-eyes.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-27-no-beard.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-28-oval-face.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-29-pale-skin.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-30-pointy-nose.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-31-receding-hairline.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-32-rosy-cheeks.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-33-sideburns.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-34-straight-hair.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-35-wearing-earrings.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-36-wearing-hat.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-37-wearing-lipstick.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-38-wearing-necklace.pkl',
+    'https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/celebahq-classifier-39-wearing-necktie.pkl',
 ]
 
 #----------------------------------------------------------------------------
@@ -109,20 +113,21 @@ class LS(metric_base.MetricBase):
         self.attrib_indices = attrib_indices
         self.minibatch_per_gpu = minibatch_per_gpu
 
-    def _evaluate(self, Gs, Gs_kwargs, num_gpus):
+    def _evaluate(self, Gs, G_kwargs, num_gpus, **_kwargs): # pylint: disable=arguments-differ
         minibatch_size = num_gpus * self.minibatch_per_gpu
 
         # Construct TensorFlow graph for each GPU.
         result_expr = []
         for gpu_idx in range(num_gpus):
-            with tf.device('/gpu:%d' % gpu_idx):
+            with tf.device(f'/gpu:{gpu_idx}'):
                 Gs_clone = Gs.clone()
 
                 # Generate images.
                 latents = tf.random_normal([self.minibatch_per_gpu] + Gs_clone.input_shape[1:])
                 labels = self._get_random_labels_tf(self.minibatch_per_gpu)
-                dlatents = Gs_clone.components.mapping.get_output_for(latents, labels, **Gs_kwargs)
-                images = Gs_clone.get_output_for(latents, None, **Gs_kwargs)
+                dlatents = Gs_clone.components.mapping.get_output_for(latents, labels, **G_kwargs)
+                images = Gs_clone.get_output_for(latents, None, **G_kwargs)
+                if images.shape[1] == 1: images = tf.tile(images, [1, 3, 1, 1])
 
                 # Downsample to 256x256. The attribute classifiers were built for 256x256.
                 if images.shape[2] > 256:
@@ -133,7 +138,8 @@ class LS(metric_base.MetricBase):
                 # Run classifier for each attribute.
                 result_dict = dict(latents=latents, dlatents=dlatents[:,-1])
                 for attrib_idx in self.attrib_indices:
-                    classifier = misc.load_pkl(classifier_urls[attrib_idx])
+                    with dnnlib.util.open_url(classifier_urls[attrib_idx]) as f:
+                        classifier = pickle.load(f)
                     logits = classifier.get_output_for(images, None)
                     predictions = tf.nn.softmax(tf.concat([logits, -logits], axis=1))
                     result_dict[attrib_idx] = predictions

@@ -1,19 +1,22 @@
-# Copyright (c) 2019, NVIDIA Corporation. All rights reserved.
+# Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
 #
-# This work is made available under the Nvidia Source Code License-NC.
-# To view a copy of this license, visit
-# https://nvlabs.github.io/stylegan2/license.html
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
 
-"""Precision/Recall (PR)."""
+"""Precision/Recall (PR) from the paper
+"Improved Precision and Recall Metric for Assessing Generative Models"."""
 
 import os
+import pickle
 import numpy as np
 import tensorflow as tf
 import dnnlib
 import dnnlib.tflib as tflib
 
 from metrics import metric_base
-from training import misc
 
 #----------------------------------------------------------------------------
 
@@ -48,7 +51,7 @@ class DistanceBlock():
             features_split2 = tf.split(self._features_batch2, self.num_gpus, axis=0)
             distances_split = []
             for gpu_idx in range(self.num_gpus):
-                with tf.device('/gpu:%d' % gpu_idx):
+                with tf.device(f'/gpu:{gpu_idx}'):
                     distances_split.append(batch_pairwise_distances(self._features_batch1, features_split2[gpu_idx]))
             self._distance_block = tf.concat(distances_split, axis=1)
 
@@ -150,7 +153,7 @@ def knn_precision_recall_features(ref_features, eval_features, feature_net, nhoo
     state.eval_manifold = ManifoldEstimator(distance_block, state.eval_features, row_batch_size, col_batch_size, nhood_sizes)
 
     # Evaluate precision and recall using k-nearest neighbors.
-    #print('Evaluating k-NN precision and recall with %i samples...' % num_images)
+    #print(f'Evaluating k-NN precision and recall with {num_images} samples...')
     #start = time.time()
 
     # Precision: How many points from eval_features are in ref_features manifold.
@@ -162,61 +165,68 @@ def knn_precision_recall_features(ref_features, eval_features, feature_net, nhoo
     state.knn_recall = state.recall.mean(axis=0)
 
     #elapsed_time = time.time() - start
-    #print('Done evaluation in: %gs' % elapsed_time)
+    #print(f'Done evaluation in: {elapsed_time:g}s')
 
     return state
 
 #----------------------------------------------------------------------------
 
 class PR(metric_base.MetricBase):
-    def __init__(self, num_images, nhood_size, minibatch_per_gpu, row_batch_size, col_batch_size, **kwargs):
+    def __init__(self, max_reals, num_fakes, nhood_size, minibatch_per_gpu, row_batch_size, col_batch_size, **kwargs):
         super().__init__(**kwargs)
-        self.num_images = num_images
+        self.max_reals = max_reals
+        self.num_fakes = num_fakes
         self.nhood_size = nhood_size
         self.minibatch_per_gpu = minibatch_per_gpu
         self.row_batch_size = row_batch_size
         self.col_batch_size = col_batch_size
 
-    def _evaluate(self, Gs, Gs_kwargs, num_gpus):
+    def _evaluate(self, Gs, G_kwargs, num_gpus, **_kwargs): # pylint: disable=arguments-differ
         minibatch_size = num_gpus * self.minibatch_per_gpu
-        feature_net = misc.load_pkl('http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/vgg16.pkl')
+        with dnnlib.util.open_url('https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/vgg16.pkl') as f:
+            feature_net = pickle.load(f)
 
         # Calculate features for reals.
-        cache_file = self._get_cache_file_for_reals(num_images=self.num_images)
+        cache_file = self._get_cache_file_for_reals(max_reals=self.max_reals)
         os.makedirs(os.path.dirname(cache_file), exist_ok=True)
         if os.path.isfile(cache_file):
-            ref_features = misc.load_pkl(cache_file)
+            with open(cache_file, 'rb') as f:
+                feat_real = pickle.load(f)
         else:
-            ref_features = np.empty([self.num_images, feature_net.output_shape[1]], dtype=np.float32)
-            for idx, images in enumerate(self._iterate_reals(minibatch_size=minibatch_size)):
-                begin = idx * minibatch_size
-                end = min(begin + minibatch_size, self.num_images)
-                ref_features[begin:end] = feature_net.run(images[:end-begin], num_gpus=num_gpus, assume_frozen=True)
-                if end == self.num_images:
+            feat_real = []
+            for images, _labels, num in self._iterate_reals(minibatch_size):
+                if images.shape[1] == 1: images = np.tile(images, [1, 3, 1, 1])
+                feat_real += list(feature_net.run(images, num_gpus=num_gpus, assume_frozen=True))[:num]
+                if self.max_reals is not None and len(feat_real) >= self.max_reals:
                     break
-            misc.save_pkl(ref_features, cache_file)
+            if self.max_reals is not None and len(feat_real) > self.max_reals:
+                feat_real = feat_real[:self.max_reals]
+            feat_real = np.stack(feat_real)
+            with open(cache_file, 'wb') as f:
+                pickle.dump(feat_real, f)
 
         # Construct TensorFlow graph.
         result_expr = []
         for gpu_idx in range(num_gpus):
-            with tf.device('/gpu:%d' % gpu_idx):
+            with tf.device(f'/gpu:{gpu_idx}'):
                 Gs_clone = Gs.clone()
                 feature_net_clone = feature_net.clone()
                 latents = tf.random_normal([self.minibatch_per_gpu] + Gs_clone.input_shape[1:])
                 labels = self._get_random_labels_tf(self.minibatch_per_gpu)
-                images = Gs_clone.get_output_for(latents, labels, **Gs_kwargs)
+                images = Gs_clone.get_output_for(latents, labels, **G_kwargs)
+                if images.shape[1] == 1: images = tf.tile(images, [1, 3, 1, 1])
                 images = tflib.convert_images_to_uint8(images)
                 result_expr.append(feature_net_clone.get_output_for(images))
 
         # Calculate features for fakes.
-        eval_features = np.empty([self.num_images, feature_net.output_shape[1]], dtype=np.float32)
-        for begin in range(0, self.num_images, minibatch_size):
-            self._report_progress(begin, self.num_images)
-            end = min(begin + minibatch_size, self.num_images)
-            eval_features[begin:end] = np.concatenate(tflib.run(result_expr), axis=0)[:end-begin]
+        feat_fake = []
+        for begin in range(0, self.num_fakes, minibatch_size):
+            self._report_progress(begin, self.num_fakes)
+            feat_fake += list(np.concatenate(tflib.run(result_expr), axis=0))
+        feat_fake = np.stack(feat_fake[:self.num_fakes])
 
         # Calculate precision and recall.
-        state = knn_precision_recall_features(ref_features=ref_features, eval_features=eval_features, feature_net=feature_net,
+        state = knn_precision_recall_features(ref_features=feat_real, eval_features=feat_fake, feature_net=feature_net,
             nhood_sizes=[self.nhood_size], row_batch_size=self.row_batch_size, col_batch_size=self.row_batch_size, num_gpus=num_gpus)
         self._report_result(state.knn_precision[0], suffix='_precision')
         self._report_result(state.knn_recall[0], suffix='_recall')

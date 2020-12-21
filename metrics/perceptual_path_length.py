@@ -1,17 +1,21 @@
-# Copyright (c) 2019, NVIDIA Corporation. All rights reserved.
+# Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
 #
-# This work is made available under the Nvidia Source Code License-NC.
-# To view a copy of this license, visit
-# https://nvlabs.github.io/stylegan2/license.html
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
 
-"""Perceptual Path Length (PPL)."""
+"""Perceptual Path Length (PPL) from the paper
+"A Style-Based Generator Architecture for Generative Adversarial Networks"."""
 
+import pickle
 import numpy as np
 import tensorflow as tf
+import dnnlib
 import dnnlib.tflib as tflib
 
 from metrics import metric_base
-from training import misc
 
 #----------------------------------------------------------------------------
 
@@ -32,7 +36,7 @@ def slerp(a, b, t):
 #----------------------------------------------------------------------------
 
 class PPL(metric_base.MetricBase):
-    def __init__(self, num_samples, epsilon, space, sampling, crop, minibatch_per_gpu, Gs_overrides, **kwargs):
+    def __init__(self, num_samples, epsilon, space, sampling, crop, minibatch_per_gpu, **kwargs):
         assert space in ['z', 'w']
         assert sampling in ['full', 'end']
         super().__init__(**kwargs)
@@ -42,17 +46,14 @@ class PPL(metric_base.MetricBase):
         self.sampling = sampling
         self.crop = crop
         self.minibatch_per_gpu = minibatch_per_gpu
-        self.Gs_overrides = Gs_overrides
 
-    def _evaluate(self, Gs, Gs_kwargs, num_gpus):
-        Gs_kwargs = dict(Gs_kwargs)
-        Gs_kwargs.update(self.Gs_overrides)
+    def _evaluate(self, Gs, G_kwargs, num_gpus, **_kwargs): # pylint: disable=arguments-differ
         minibatch_size = num_gpus * self.minibatch_per_gpu
 
         # Construct TensorFlow graph.
         distance_expr = []
         for gpu_idx in range(num_gpus):
-            with tf.device('/gpu:%d' % gpu_idx):
+            with tf.device(f'/gpu:{gpu_idx}'):
                 Gs_clone = Gs.clone()
                 noise_vars = [var for name, var in Gs_clone.components.synthesis.vars.items() if name.startswith('noise')]
 
@@ -63,7 +64,7 @@ class PPL(metric_base.MetricBase):
 
                 # Interpolate in W or Z.
                 if self.space == 'w':
-                    dlat_t01 = Gs_clone.components.mapping.get_output_for(lat_t01, labels, **Gs_kwargs)
+                    dlat_t01 = Gs_clone.components.mapping.get_output_for(lat_t01, labels, **G_kwargs)
                     dlat_t01 = tf.cast(dlat_t01, tf.float32)
                     dlat_t0, dlat_t1 = dlat_t01[0::2], dlat_t01[1::2]
                     dlat_e0 = tflib.lerp(dlat_t0, dlat_t1, lerp_t[:, np.newaxis, np.newaxis])
@@ -74,11 +75,11 @@ class PPL(metric_base.MetricBase):
                     lat_e0 = slerp(lat_t0, lat_t1, lerp_t[:, np.newaxis])
                     lat_e1 = slerp(lat_t0, lat_t1, lerp_t[:, np.newaxis] + self.epsilon)
                     lat_e01 = tf.reshape(tf.stack([lat_e0, lat_e1], axis=1), lat_t01.shape)
-                    dlat_e01 = Gs_clone.components.mapping.get_output_for(lat_e01, labels, **Gs_kwargs)
+                    dlat_e01 = Gs_clone.components.mapping.get_output_for(lat_e01, labels, **G_kwargs)
 
                 # Synthesize images.
                 with tf.control_dependencies([var.initializer for var in noise_vars]): # use same noise inputs for the entire minibatch
-                    images = Gs_clone.components.synthesis.get_output_for(dlat_e01, randomize_noise=False, **Gs_kwargs)
+                    images = Gs_clone.components.synthesis.get_output_for(dlat_e01, randomize_noise=False, **G_kwargs)
                     images = tf.cast(images, tf.float32)
 
                 # Crop only the face region.
@@ -94,10 +95,12 @@ class PPL(metric_base.MetricBase):
 
                 # Scale dynamic range from [-1,1] to [0,255] for VGG.
                 images = (images + 1) * (255 / 2)
+                if images.shape[1] == 1: images = tf.tile(images, [1, 3, 1, 1])
 
                 # Evaluate perceptual distance.
                 img_e0, img_e1 = images[0::2], images[1::2]
-                distance_measure = misc.load_pkl('http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/vgg16_zhang_perceptual.pkl')
+                with dnnlib.util.open_url('https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/vgg16_zhang_perceptual.pkl') as f:
+                    distance_measure = pickle.load(f)
                 distance_expr.append(distance_measure.get_output_for(img_e0, img_e1) * (1 / self.epsilon**2))
 
         # Sampling loop.

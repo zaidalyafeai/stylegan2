@@ -1,8 +1,10 @@
-﻿# Copyright (c) 2019, NVIDIA Corporation. All rights reserved.
+﻿# Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
 #
-# This work is made available under the Nvidia Source Code License-NC.
-# To view a copy of this license, visit
-# https://nvlabs.github.io/stylegan2/license.html
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 """Miscellaneous utility classes and functions."""
 
@@ -22,6 +24,9 @@ import requests
 import html
 import hashlib
 import glob
+import tempfile
+import urllib
+import urllib.request
 import uuid
 
 from distutils.util import strtobool
@@ -103,6 +108,26 @@ class Logger(object):
         if self.file is not None:
             self.file.close()
 
+
+# Cache directories
+# ------------------------------------------------------------------------------------------
+
+_dnnlib_cache_dir = None
+
+def set_cache_dir(path: str) -> None:
+    global _dnnlib_cache_dir
+    _dnnlib_cache_dir = path
+
+def make_cache_dir_path(*paths: str) -> str:
+    if _dnnlib_cache_dir is not None:
+        return os.path.join(_dnnlib_cache_dir, *paths)
+    if 'DNNLIB_CACHE_DIR' in os.environ:
+        return os.path.join(os.environ['DNNLIB_CACHE_DIR'], *paths)
+    if 'HOME' in os.environ:
+        return os.path.join(os.environ['HOME'], '.cache', 'dnnlib', *paths)
+    if 'USERPROFILE' in os.environ:
+        return os.path.join(os.environ['USERPROFILE'], '.cache', 'dnnlib', *paths)
+    return os.path.join(tempfile.gettempdir(), '.cache', 'dnnlib', *paths)
 
 # Small util functions
 # ------------------------------------------------------------------------------------------
@@ -256,6 +281,11 @@ def call_func_by_name(*args, func_name: str = None, **kwargs) -> Any:
     return func_obj(*args, **kwargs)
 
 
+def construct_class_by_name(*args, class_name: str = None, **kwargs) -> Any:
+    """Finds the python class with the given name and constructs it with the given arguments."""
+    return call_func_by_name(*args, func_name=class_name, **kwargs)
+
+
 def get_module_dir_by_obj_name(obj_name: str) -> str:
     """Get the directory path of the module containing the given object name."""
     module, _ = get_module_from_obj_name(obj_name)
@@ -270,7 +300,10 @@ def is_top_level_function(obj: Any) -> bool:
 def get_top_level_function_name(obj: Any) -> str:
     """Return the fully-qualified name of a top-level function."""
     assert is_top_level_function(obj)
-    return obj.__module__ + "." + obj.__name__
+    module = obj.__module__
+    if module == '__main__':
+        module = os.path.splitext(os.path.basename(sys.modules[module].__file__))[0]
+    return module + "." + obj.__name__
 
 
 # File system helpers
@@ -329,7 +362,7 @@ def is_url(obj: Any, allow_file_urls: bool = False) -> bool:
     """Determine whether the given object is a valid URL string."""
     if not isinstance(obj, str) or not "://" in obj:
         return False
-    if allow_file_urls and obj.startswith('file:///'):
+    if allow_file_urls and obj.startswith('file://'):
         return True
     try:
         res = requests.compat.urlparse(obj)
@@ -343,21 +376,47 @@ def is_url(obj: Any, allow_file_urls: bool = False) -> bool:
     return True
 
 
-def open_url(url: str, cache_dir: str = None, num_attempts: int = 10, verbose: bool = True) -> Any:
+def open_url(url: str, cache_dir: str = None, num_attempts: int = 10, verbose: bool = True, return_filename: bool = False, cache: bool = True) -> Any:
     """Download the given URL and return a binary-mode file object to access the data."""
-    assert is_url(url, allow_file_urls=True)
     assert num_attempts >= 1
+    assert not (return_filename and (not cache))
 
-    # Handle file URLs.
-    if url.startswith('file:///'):
-        return open(url[len('file:///'):], "rb")
+    # Doesn't look like an URL scheme so interpret it as a local filename.
+    if not re.match('^[a-z]+://', url):
+        return url if return_filename else open(url, "rb")
+
+    # Handle file URLs.  This code handles unusual file:// patterns that
+    # arise on Windows:
+    #
+    # file:///c:/foo.txt
+    #
+    # which would translate to a local '/c:/foo.txt' filename that's
+    # invalid.  Drop the forward slash for such pathnames.
+    #
+    # If you touch this code path, you should test it on both Linux and
+    # Windows.
+    #
+    # Some internet resources suggest using urllib.request.url2pathname() but
+    # but that converts forward slashes to backslashes and this causes
+    # its own set of problems.
+    if url.startswith('file://'):
+        filename = urllib.parse.urlparse(url).path
+        if re.match(r'^/[a-zA-Z]:', filename):
+            filename = filename[1:]
+        return filename if return_filename else open(filename, "rb")
+
+    assert is_url(url)
 
     # Lookup from cache.
+    if cache_dir is None:
+        cache_dir = make_cache_dir_path('downloads')
+
     url_md5 = hashlib.md5(url.encode("utf-8")).hexdigest()
-    if cache_dir is not None:
+    if cache:
         cache_files = glob.glob(os.path.join(cache_dir, url_md5 + "_*"))
         if len(cache_files) == 1:
-            return open(cache_files[0], "rb")
+            filename = cache_files[0]
+            return filename if return_filename else open(filename, "rb")
 
     # Download.
     url_name = None
@@ -397,7 +456,7 @@ def open_url(url: str, cache_dir: str = None, num_attempts: int = 10, verbose: b
                     print(".", end="", flush=True)
 
     # Save to cache.
-    if cache_dir is not None:
+    if cache:
         safe_name = re.sub(r"[^0-9a-zA-Z-._]", "_", url_name)
         cache_file = os.path.join(cache_dir, url_md5 + "_" + safe_name)
         temp_file = os.path.join(cache_dir, "tmp_" + uuid.uuid4().hex + "_" + url_md5 + "_" + safe_name)
@@ -405,6 +464,9 @@ def open_url(url: str, cache_dir: str = None, num_attempts: int = 10, verbose: b
         with open(temp_file, "wb") as f:
             f.write(url_data)
         os.replace(temp_file, cache_file) # atomic
+        if return_filename:
+            return cache_file
 
     # Return data as file object.
+    assert not return_filename
     return io.BytesIO(url_data)

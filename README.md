@@ -1,190 +1,184 @@
 ![Teaser image](./fake_art_portrait.jpg)
 
-* Conditional model trained on WikiArt images [now available for download](https://archive.org/details/wikiart-stylegan2-conditional-model)
-* Take a look at the included notebooks for examples
-* Conditional support originally from @davidstap
-* port of my encoder from @robertluxemburg
-* fp16 branch from @veqtor
-* tpu and swarm branches from @shawwn
-* runwayml support from @genekogan
+* [Download the conditional WikiArt model](https://archive.org/download/wikiart-stylegan2-conditional-model/WikiArt5.pkl)
 
-<a href="https://open-app.runwayml.com/?model=pbaylies/stylegan2" target="_blank"><img src="https://open-app.runwayml.com/gh-badge.svg" /></a>
+* See [the notebook for sample generation](https://github.com/pbaylies/stylegan2-ada/blob/main/WikiArt%20Example%20Generation.ipynb)
 
-**Various Improvements from skyflynil to make StyleGAN2 more suitible to be trained on Google Colab**
-* Supports Non-Square images, for example, 768x512, which basically as 6x4 (x2^7), or 640x384 as 5x3 (x2^7), etc.
-* Supports vertical mirror augmentation
-* Supports train from latest pkl automatically
-* Optimized dataset creation and access for non-progressive training and for colab training, which includes: create only the maximum size tfrecord; use raw JPEG instead of decoded numpy array, which reduce both tfrecord creation time and dataset size dramatically. (* Only tested for config-e and config-f, as no-progressive for these configurations)
+* Or, [a Colab version, by @Norod](https://github.com/Norod/my-colab-experiments/blob/master/WikiArt_ADA_Example_Generation.ipynb)
 
-**Detailed instruction for training your stylegan2**
+* There's also [an unconditional model](https://archive.org/download/wikiart-stylegan2-conditional-model/WikiArt_Uncond2.pkl)
 
-* Create training image set. Instead of image size of 2^n * 2^n, now you can process your image size as of (min_h x 2^n) X (min_w * 2^n) natually. For example, 640x384, min_h = 5, min_w =3, n=7. Please make sure all your raw images are preprocessed to the exact same size. To reduce the training set size, JPEG format is preferred.
-* Create tfrecord, clone this repo, then
-```
-python dataset_tool.py create_from_images_raw dataset_dir raw_image_dir
-```
-* To train, for example, 640x384 training set
-```
-python run_training.py --num-gpus=your_gpu_num --data-dir=your_data_dir --config=config-e(or config_f) --dataset=your_data_set --mirror-augment=true --metric=none --total-kimg=12000 --min-h=5 --min-w=3 --res-log2=7 --result-dir=your_result_dir
-```
+### Many thanks to @dvschultz for his fork; original README is below:
 
-**Tips for Colab training**
-* Clone this repo
-```
-%tensorflow_version 1.x
-import tensorflow as tf
+## Need Help?
+* If you’re new to StyleGAN2-ADA and looking to get started, please check out [this video series](https://www.youtube.com/playlist?list=PLWuCzxqIpJs8ViuBIUtAk-dsAtdrApYoy) from a course Lia Coleman and I taught in October 2020.
+* Interested in contributing? Please submit PRs or discuss changes in the [Artificial Images Slack](https://join.slack.com/t/ml-images/shared_invite/zt-9mxoe7va-eBZ9xzAWpx8VRL~Km_PzUQ) channel
 
-# Download the code
-!git clone https://github.com/skyflynil/stylegan2.git
-%cd stylegan2
-!nvcc test_nvcc.cu -o test_nvcc -run
+## Edits made to this repo
 
-print('Tensorflow version: {}'.format(tf.__version__) )
-!nvidia-smi -L
-print('GPU Identified at: {}'.format(tf.test.gpu_device_name()))
-```
-* Tar your raw data and upload to google drive, share it as data_url
-* In colab, mount your google drive, and make a result dir if there is none, for example, 'stylegan2/results'
-```
-from google.colab import drive
-drive.mount("/content/drive", force_remount=True)
-```
+* **Fakes .jpg**: save yourself a ton of space with fakes during training saved as .jpg instead of .png
+* **Default GPU-based configs**: added configs to maximize GPU usage for 11GB. 24GB, and 48GB cards (use 11GB for 16GB cards)
+* **"Complex" configs**: Apply the cifar10 config to other datasets (good for complex/diverse datasets) Use `11gb-gpu-complex` or `24gb-gpu-complex`
+* **Conditional dataset creation from folders**: Make conditional datasets from folders of images using `create_from image_folders` or `create_from image_folders_raw`
+* **Vertical Mirroring**: use `--mirrory=True` to flip training set top to bottom
+* **Interpolations methods**: Multiple interpolation methods included in the generate.py script
+* **Neighbor vectors**: Fine-tune seed selections by looking at vectors near it. Included in the generate.py script
+* **Use np vectors in interpolations (in addition to seed values)** Use saved .npy or .npz files in interpolation metohds. Thanks @ekkolabs!
+* **Flesh Digressions**: @aydao’s circular constant layer script edited to work with ADA see aydao_flesh_digressions.py
+* **Raw dataset creations**: Taken from the @skyflynil repo, reduces the size of datasets dramatically. Use `create_from images_raw` and `create_from image_folders_raw` in dataset creation, and use `--use-raw=True` in training (False by default!)
+* **align faces script**: From @pbaylies, this script will align images better for projection.
+* **top-k training**: Improve generator training by only propagating gradients from images the discriminator was most unsure of: [Sinha & Zhao](https://arxiv.org/abs/2002.06224).
+* **@aydao's config**: Extra large config for huge datasets (>100k img)
 
-* download raw dataset to colab using 
-```
-!gdown data_url
-```
-* create your dataset for train
-```
-!mkdir dataset
-!tar -xf your_downloaded_tar
-!python dataset_tool.py create_from_images_raw ./dataset/dataset_name untared_raw_image_dir
-```
-* start training
-```
-!python run_training.py --num-gpus=1 --data-dir=./dataset --config=config-f --dataset=your_dataset_name --mirror-augment=true --metric=none --total-kimg=20000 --min-h=5 --min-w=3 --res-log2=7 --result-dir="/content/drive/My Drive/stylegan2/results"
-```
-and it will automatically resume from last saved pkl.
+## StyleGAN2 with adaptive discriminator augmentation (ADA)<br>&mdash; Official TensorFlow implementation
 
-* You may also save a generated tfrecord directly in your google drive, and pin your dataset dir to your google drive. The benefit of creating a new tfrecord everytime is: Google colab disconnects after around 9-12 hours, since there is no true randomness for tfrecord, you may end up using some data more often then others. Also, the read/transfer speed from mounted google drive is kind of slow. It only takes about 2 min to gdown and create dataset for 30k/2G jpeg files.
+![Teaser image](./docs/stylegan2-ada-teaser-1024x252.png)
 
-* You may also try this to boost your instance memory before training. 
+**Training Generative Adversarial Networks with Limited Data**<br>
+Tero Karras, Miika Aittala, Janne Hellsten, Samuli Laine, Jaakko Lehtinen, Timo Aila<br>
+https://arxiv.org/abs/2006.06676<br>
 
-https://github.com/googlecolab/colabtools/issues/253
-
-* For image size 1280x768 (hxw), you may choose (min_h, min_w, res_log2) as (10, 6, 7) or (5, 3, 8) , the latter setup is preferred due to deeper and smaller network, change res_log2 argument for dataset creation and training accordingly.
-```
-!python dataset_tool.py create_from_images_raw --res_log2=8 ./dataset/dataset_name untared_raw_image_dir
-!python run_training.py --num-gpus=1 --data-dir=./dataset --config=config-f --dataset=your_dataset_name --mirror-augment=true --metric=none --total-kimg=20000 --min-h=5 --min-w=3 --res-log2=8 --result-dir="/content/drive/My Drive/stylegan2/results"
-```
-* You may change relevant arguments in run_traing.py for fakeimage/checkpoint interval, D/G learning rate, and minibatch_gpu_base to suit your needs or workaround gpu memory issues.
-
-* Stylegan2 removed the capability of setting learning rate of G/D seperately. Added it back but did not test much, you may use --dlr and --glr to overwrite the D/G's base learning rate
-
-* Added google attention option to certain D/G layer. You may try it with specifying --use-attention=true
-* if the tfrecord is created using create_from_images (instead of create_from_images_raw), please specify --use-raw=false
-* Also, exposed resume_with_new_nets to command line. The example usage would be, network trained without attention, but now you want to try the network with attention module, you can specify --resume_with_new_nets=true to copy weights from checkpoints.
-
-**Credits**
-* https://github.com/NVlabs/stylegan2
-* https://github.com/akanimax/msg-stylegan-tf
-* https://colab.research.google.com/drive/1ShgW6wohEFQtqs_znMna3dzrcVoABKIH
-
-
-## StyleGAN2 &mdash; Encoder for Official TensorFlow Implementation
-![Python 3.6](https://img.shields.io/badge/python-3.6-green.svg?style=plastic)
-![TensorFlow 1.10](https://img.shields.io/badge/tensorflow-1.10-green.svg?style=plastic)
-![cuDNN 7.3.1](https://img.shields.io/badge/cudnn-7.3.1-green.svg?style=plastic)
-![License CC BY-NC](https://img.shields.io/badge/license-CC_BY--NC-green.svg?style=plastic)
-
-This is an experimental port of [pbaylies/stylegan-encoder](https://github.com/pbaylies/stylegan-encoder) for [NVlabs/stylegan2](https://github.com/NVlabs/stylegan2).
-
-![Teaser image](./docs/stylegan2encoder-teaser-1024x256.png)
-
-To test this, try out the notebook.
-
-### Original Readme
-
-![Teaser image](./docs/stylegan2-teaser-1024x256.png)
-
-**Analyzing and Improving the Image Quality of StyleGAN**<br>
-Tero Karras, Samuli Laine, Miika Aittala, Janne Hellsten, Jaakko Lehtinen, Timo Aila<br>
-
-Paper: http://arxiv.org/abs/1912.04958<br>
-Video: https://youtu.be/c-NJtV9Jvp0<br>
-
-Abstract: *The style-based GAN architecture (StyleGAN) yields state-of-the-art results in data-driven unconditional generative image modeling. We expose and analyze several of its characteristic artifacts, and propose changes in both model architecture and training methods to address them. In particular, we redesign generator normalization, revisit progressive growing, and regularize the generator to encourage good conditioning in the mapping from latent vectors to images. In addition to improving image quality, this path length regularizer yields the additional benefit that the generator becomes significantly easier to invert. This makes it possible to reliably detect if an image is generated by a particular network. We furthermore visualize how well the generator utilizes its output resolution, and identify a capacity problem, motivating us to train larger models for additional quality improvements. Overall, our improved model redefines the state of the art in unconditional image modeling, both in terms of existing distribution quality metrics as well as perceived image quality.*
+Abstract: *Training generative adversarial networks (GAN) using too little data typically leads to discriminator overfitting, causing training to diverge. We propose an adaptive discriminator augmentation mechanism that significantly stabilizes training in limited data regimes. The approach does not require changes to loss functions or network architectures, and is applicable both when training from scratch and when fine-tuning an existing GAN on another dataset. We demonstrate, on several datasets, that good results are now possible using only a few thousand training images, often matching StyleGAN2 results with an order of magnitude fewer images. We expect this to open up new application domains for GANs. We also find that the widely used CIFAR-10 is, in fact, a limited data benchmark, and improve the record FID from 5.59 to 2.42.*
 
 For business inquiries, please contact [researchinquiries@nvidia.com](mailto:researchinquiries@nvidia.com)<br>
 For press and other inquiries, please contact Hector Marinez at [hmarinez@nvidia.com](mailto:hmarinez@nvidia.com)<br>
 
-| Additional material | &nbsp;
+## What's new
+
+This repository supersedes the original [StyleGAN2](https://github.com/NVlabs/stylegan2) with the following new features:
+
+* **ADA**: Significantly better results for datasets with less than ~30k training images. State-of-the-art results for CIFAR-10.
+* **Mixed-precision support**: ~1.6x faster training, ~1.3x faster inference, ~1.5x lower GPU memory consumption.
+* **Better hyperparameter defaults**: Reasonable out-of-the-box results for different dataset resolutions and GPU counts.
+* **Clean codebase**: Extensive refactoring and simplification. The code should be generally easier to work with.
+* **Command line tools**: Easily reproduce training runs from the paper, generate projection videos for arbitrary images, etc.
+* **Network import**: Full support for network pickles produced by [StyleGAN](https://github.com/NVlabs/stylegan) and [StyleGAN2](https://github.com/NVlabs/stylegan2). Faster loading times.
+* **Augmentation pipeline**: Self-contained, reusable GPU implementation of extensive high-quality image augmentations.
+* **Bugfixes**
+
+## External data repository
+
+| Path | Description
 | :--- | :----------
-| [StyleGAN2](https://drive.google.com/open?id=1QHc-yF5C3DChRwSdZKcx1w6K8JvSxQi7) | Main Google Drive folder
-| &boxvr;&nbsp; [stylegan2-paper.pdf](https://drive.google.com/open?id=1fnF-QsiQeKaxF-HbvFiGtzHF_Bf3CzJu) | High-quality version of the paper
-| &boxvr;&nbsp; [stylegan2-video.mp4](https://drive.google.com/open?id=1f_gbKW6FUUHKkUxciJ_lQx29mCq_fSBy) | High-quality version of the video
-| &boxvr;&nbsp; [images](https://drive.google.com/open?id=1Sak157_DLX84ytqHHqZaH_59HoEWzfB7) | Example images produced using our method
-| &boxv;&nbsp; &boxvr;&nbsp;  [curated-images](https://drive.google.com/open?id=1ydWb8xCHzDKMTW9kQ7sL-B1R0zATHVHp) | Hand-picked images showcasing our results
-| &boxv;&nbsp; &boxur;&nbsp;  [100k-generated-images](https://drive.google.com/open?id=1BA2OZ1GshdfFZGYZPob5QWOGBuJCdu5q) | Random images with and without truncation
-| &boxvr;&nbsp; [videos](https://drive.google.com/open?id=1yXDV96SFXoUiZKU7AyE6DyKgDpIk4wUZ) | Individual clips of the video as high-quality MP4
-| &boxur;&nbsp; [networks](https://drive.google.com/open?id=1yanUI9m4b4PWzR0eurKNq6JR1Bbfbh6L) | Pre-trained networks
-| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-ffhq-config-f.pkl](http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/stylegan2-ffhq-config-f.pkl) | StyleGAN2 for <span style="font-variant:small-caps">FFHQ</span> dataset at 1024&times;1024
-| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-car-config-f.pkl](http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/stylegan2-car-config-f.pkl) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Car</span> dataset at 512&times;384
-| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-cat-config-f.pkl](http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/stylegan2-cat-config-f.pkl) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Cat</span> dataset at 256&times;256
-| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-church-config-f.pkl](http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/stylegan2-church-config-f.pkl) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Church</span> dataset at 256&times;256
-| &ensp;&ensp; &boxvr;&nbsp;  [stylegan2-horse-config-f.pkl](http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/stylegan2-horse-config-f.pkl) | StyleGAN2 for <span style="font-variant:small-caps">LSUN Horse</span> dataset at 256&times;256
-| &ensp;&ensp; &boxur;&nbsp;&#x22ef;  | Other training configurations used in the paper
+| [stylegan2-ada](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/) | Main directory hosted on Amazon S3
+| &ensp;&ensp;&boxvr;&nbsp; [ada-paper.pdf](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/ada-paper.pdf) | Paper PDF
+| &ensp;&ensp;&boxvr;&nbsp; [images](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/images/) | Curated example images produced using the pre-trained models
+| &ensp;&ensp;&boxvr;&nbsp; [videos](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/videos/) | Curated example interpolation videos
+| &ensp;&ensp;&boxur;&nbsp; [pretrained](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/) | Pre-trained models
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; metfaces.pkl | MetFaces at 1024x1024, transfer learning from FFHQ using ADA
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; brecahad.pkl | BreCaHAD at 512x512, trained from scratch using ADA
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; afhqcat.pkl | AFHQ Cat at 512x512, trained from scratch using ADA
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; afhqdog.pkl | AFHQ Dog at 512x512, trained from scratch using ADA
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; afhqwild.pkl | AFHQ Wild at 512x512, trained from scratch using ADA
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; cifar10.pkl | Class-conditional CIFAR-10 at 32x32
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; ffhq.pkl | FFHQ at 1024x1024, trained using original StyleGAN2
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; [paper-fig7c-training-set-sweeps](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/paper-fig7c-training-set-sweeps/) | All models used in Fig.7c (baseline, ADA, bCR)
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; [paper-fig8a-comparison-methods](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/paper-fig8a-comparison-methods/) | All models used in Fig.8a (comparison methods)
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; [paper-fig8b-discriminator-capacity](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/paper-fig8b-discriminator-capacity/) | All models used in Fig.8b (discriminator capacity)
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; [paper-fig11a-small-datasets](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/paper-fig11a-small-datasets/) | All models used in Fig.11a (small datasets, transfer learning)
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; [paper-fig11b-cifar10](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/paper-fig11b-cifar10/) | All models used in Fig.11b (CIFAR-10)
+| &ensp;&ensp;&ensp;&ensp;&boxvr;&nbsp; [transfer-learning-source-nets](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/transfer-learning-source-nets/) | Models used as starting point for transfer learning
+| &ensp;&ensp;&ensp;&ensp;&boxur;&nbsp; [metrics](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metrics/) | Feature detectors used by the quality metrics
 
 ## Requirements
 
-* Both Linux and Windows are supported. Linux is recommended for performance and compatibility reasons.
-* 64-bit Python 3.6 installation. We recommend Anaconda3 with numpy 1.14.3 or newer.
-* TensorFlow 1.14 or 1.15 with GPU support. The code does not support TensorFlow 2.0.
-* On Windows, you need to use TensorFlow 1.14 &mdash; TensorFlow 1.15 will not work.
-* One or more high-end NVIDIA GPUs, NVIDIA drivers, CUDA 10.0 toolkit and cuDNN 7.5. To reproduce the results reported in the paper, you need an NVIDIA GPU with at least 16 GB of DRAM.
+* Linux and Windows are supported, but we recommend Linux for performance and compatibility reasons.
+* 64-bit Python 3.6 or 3.7. We recommend Anaconda3 with numpy 1.14.3 or newer.
+* We recommend TensorFlow 1.14, which we used for all experiments in the paper, but TensorFlow 1.15 is also supported on Linux. TensorFlow 2.x is not supported.
+* On Windows you need to use TensorFlow 1.14, as the standard 1.15 installation does not include necessary C++ headers.
+* 1&ndash;8 high-end NVIDIA GPUs with at least 12 GB of GPU memory, NVIDIA drivers, CUDA 10.0 toolkit and cuDNN 7.5.
 * Docker users: use the [provided Dockerfile](./Dockerfile) to build an image with the required library dependencies.
 
-StyleGAN2 relies on custom TensorFlow ops that are compiled on the fly using [NVCC](https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html). To test that your NVCC installation is working correctly, run:
+The generator and discriminator networks rely heavily on custom TensorFlow ops that are compiled on the fly using NVCC. On Windows, the compilation requires Microsoft Visual Studio to be in `PATH`. We recommend installing [Visual Studio Community Edition](https://visualstudio.microsoft.com/vs/) and adding it into `PATH` using `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"`.
+
+## Getting started
+
+Pre-trained networks are stored as `*.pkl` files that can be referenced using local filenames or URLs:
 
 ```.bash
-nvcc test_nvcc.cu -o test_nvcc -run
-| CPU says hello.
-| GPU says hello.
+# Generate curated MetFaces images without truncation (Fig.10 left)
+python generate.py --outdir=out --trunc=1 --seeds=85,265,297,849 \
+    --network=https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metfaces.pkl
+
+# Generate uncurated MetFaces images with truncation (Fig.12 upper left)
+python generate.py --outdir=out --trunc=0.7 --seeds=600-605 \
+    --network=https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metfaces.pkl
+
+# Generate class conditional CIFAR-10 images (Fig.17 left, Car)
+python generate.py --outdir=out --trunc=1 --seeds=0-35 --class=1 \
+    --network=https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/cifar10.pkl
 ```
 
-On Windows, the compilation requires Microsoft Visual Studio to be in `PATH`. We recommend installing [Visual Studio Community Edition](https://visualstudio.microsoft.com/vs/) and adding into `PATH` using `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"`.
+Outputs from the above commands are placed under `out/*.png`. You can change the location with `--outdir`. Temporary cache files, such as CUDA build results and downloaded network pickles, will be saved under `$HOME/.cache/dnnlib`. This can be overridden using the `DNNLIB_CACHE_DIR` environment variable.
 
-## Using pre-trained networks
-
-Pre-trained networks are stored as `*.pkl` files on the [StyleGAN2 Google Drive folder](https://drive.google.com/open?id=1QHc-yF5C3DChRwSdZKcx1w6K8JvSxQi7). Below, you can either reference them directly using the syntax `gdrive:networks/<filename>.pkl`, or download them manually and reference by filename.
+**Docker**: You can run the above curated image example using Docker as follows:
 
 ```.bash
-# Generate uncurated ffhq images (matches paper Figure 12)
-python run_generator.py generate-images --network=gdrive:networks/stylegan2-ffhq-config-f.pkl \
-  --seeds=6600-6625 --truncation-psi=0.5
-
-# Generate curated ffhq images (matches paper Figure 11)
-python run_generator.py generate-images --network=gdrive:networks/stylegan2-ffhq-config-f.pkl \
-  --seeds=66,230,389,1518 --truncation-psi=1.0
-
-# Generate uncurated car images
-python run_generator.py generate-images --network=gdrive:networks/stylegan2-car-config-f.pkl \
-  --seeds=6000-6025 --truncation-psi=0.5
-
-# Example of style mixing (matches the corresponding video clip)
-python run_generator.py style-mixing-example --network=gdrive:networks/stylegan2-ffhq-config-f.pkl \
-  --row-seeds=85,100,75,458,1500 --col-seeds=55,821,1789,293 --truncation-psi=1.0
+docker build --tag stylegan2ada:latest .
+docker run --gpus all -it --rm -v `pwd`:/scratch --user $(id -u):$(id -g) stylegan2ada:latest bash -c \
+    "(cd /scratch && DNNLIB_CACHE_DIR=/scratch/.cache python3 generate.py --trunc=1 --seeds=85,265,297,849 \
+    --outdir=out --network=https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/metfaces.pkl)"
 ```
 
-The results are placed in `results/<RUNNING_ID>/*.png`. You can change the location with `--result-dir`. For example, `--result-dir=~/my-stylegan2-results`.
+## Projecting images to latent space
 
-You can import the networks in your own Python code using `pickle.load()`. For this to work, you need to include the `dnnlib` source directory in `PYTHONPATH` and create a default TensorFlow session by calling `dnnlib.tflib.init_tf()`. See [run_generator.py](./run_generator.py) and [pretrained_networks.py](./pretrained_networks.py) for examples.
+To find the matching latent vector for a given image file, run:
+
+```.bash
+python projector.py --outdir=out --target=targetimg.png \
+    --network=https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/ffhq.pkl
+```
+
+For optimal results, the target image should be cropped and aligned similar to the original FFHQ dataset. The above command saves the projection target `out/target.png`, result `out/proj.png`, latent vector `out/dlatents.npz`, and progression video `out/proj.mp4`. You can render the resulting latent vector by specifying `--dlatents` for `python generate.py`:
+
+```.bash
+python generate.py --outdir=out --dlatents=out/dlatents.npz \
+    --network=https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/ffhq.pkl
+```
 
 ## Preparing datasets
 
-Datasets are stored as multi-resolution TFRecords, similar to the [original StyleGAN](https://github.com/NVlabs/stylegan). Each dataset consists of multiple `*.tfrecords` files stored under a common directory, e.g., `~/datasets/ffhq/ffhq-r*.tfrecords`. In the following sections, the datasets are referenced using a combination of `--dataset` and `--data-dir` arguments, e.g., `--dataset=ffhq --data-dir=~/datasets`.
+Datasets are stored as multi-resolution TFRecords, i.e., the same format used by [StyleGAN](https://github.com/NVlabs/stylegan) and [StyleGAN2](https://github.com/NVlabs/stylegan2). Each dataset consists of multiple `*.tfrecords` files stored under a common directory, e.g., `~/datasets/ffhq/ffhq-r*.tfrecords`
 
-**FFHQ**. To download the [Flickr-Faces-HQ](https://github.com/NVlabs/ffhq-dataset) dataset as multi-resolution TFRecords, run:
+**MetFaces**: Download the [MetFaces dataset](https://github.com/NVlabs/metfaces-dataset) and convert to TFRecords:
+
+```.bash
+python dataset_tool.py create_from_images ~/datasets/metfaces ~/downloads/metfaces/images
+python dataset_tool.py display ~/datasets/metfaces
+```
+
+**BreCaHAD**: Download the [BreCaHAD dataset](https://figshare.com/articles/BreCaHAD_A_Dataset_for_Breast_Cancer_Histopathological_Annotation_and_Diagnosis/7379186). Generate 512x512 resolution crops and convert to TFRecords:
+
+```.bash
+python dataset_tool.py extract_brecahad_crops --cropsize=512 \
+    --output_dir=/tmp/brecahad-crops --brecahad_dir=~/downloads/brecahad/images
+
+python dataset_tool.py create_from_images ~/datasets/brecahad /tmp/brecahad-crops
+python dataset_tool.py display ~/datasets/brecahad
+```
+
+**AFHQ**: Download the [AFHQ dataset](https://github.com/clovaai/stargan-v2/blob/master/README.md#animal-faces-hq-dataset-afhq) and convert to TFRecords:
+
+```.bash
+python dataset_tool.py create_from_images ~/datasets/afhqcat ~/downloads/afhq/train/cat
+python dataset_tool.py create_from_images ~/datasets/afhqdog ~/downloads/afhq/train/dog
+python dataset_tool.py create_from_images ~/datasets/afhqwild ~/downloads/afhq/train/wild
+python dataset_tool.py display ~/datasets/afhqcat
+```
+
+**CIFAR-10**: Download the [CIFAR-10 python version](https://www.cs.toronto.edu/~kriz/cifar.html). Convert to two separate TFRecords for unconditional and class-conditional training:
+
+```.bash
+python dataset_tool.py create_cifar10 --ignore_labels=1 \
+    ~/datasets/cifar10u ~/downloads/cifar-10-batches-py
+
+python dataset_tool.py create_cifar10 --ignore_labels=0 \
+    ~/datasets/cifar10c ~/downloads/cifar-10-batches-py
+
+python dataset_tool.py display ~/datasets/cifar10c
+```
+
+**FFHQ**: Download the [Flickr-Faces-HQ](https://github.com/NVlabs/ffhq-dataset) dataset as TFRecords:
 
 ```.bash
 pushd ~
@@ -195,131 +189,220 @@ popd
 python dataset_tool.py display ~/ffhq-dataset/tfrecords/ffhq
 ```
 
-**LSUN**. Download the desired LSUN categories in LMDB format from the [LSUN project page](https://www.yf.io/p/lsun). To convert the data to multi-resolution TFRecords, run:
+**LSUN**: Download the desired LSUN categories in LMDB format from the [LSUN project page](https://www.yf.io/p/lsun) and convert to TFRecords:
 
 ```.bash
-python dataset_tool.py create_lsun_wide ~/datasets/car ~/lsun/car_lmdb --width=512 --height=384
-python dataset_tool.py create_lsun ~/datasets/cat ~/lsun/cat_lmdb --resolution=256
-python dataset_tool.py create_lsun ~/datasets/church ~/lsun/church_outdoor_train_lmdb --resolution=256
-python dataset_tool.py create_lsun ~/datasets/horse ~/lsun/horse_lmdb --resolution=256
+python dataset_tool.py create_lsun --resolution=256 --max_images=200000 \
+    ~/datasets/lsuncat200k ~/downloads/lsun/cat_lmdb
+
+python dataset_tool.py display ~/datasets/lsuncat200k
 ```
 
-**Custom**. Create custom datasets by placing all training images under a single directory. The images must be square-shaped and they must all have the same power-of-two dimensions. To convert the images to multi-resolution TFRecords, run:
+**Custom**: Custom datasets can be created by placing all images under a single directory. The images must be square-shaped and they must all have the same power-of-two dimensions. To convert the images to multi-resolution TFRecords, run:
 
 ```.bash
-python dataset_tool.py create_from_images ~/datasets/my-custom-dataset ~/my-custom-images
-python dataset_tool.py display ~/datasets/my-custom-dataset
+python dataset_tool.py create_from_images ~/datasets/custom ~/custom-images
+python dataset_tool.py display ~/datasets/custom
 ```
 
-## Projecting images to latent space
+## Training new networks
 
-To find the matching latent vectors for a set of images, run:
+In its most basic form, training new networks boils down to:
 
 ```.bash
-# Project generated images
-python run_projector.py project-generated-images --network=gdrive:networks/stylegan2-car-config-f.pkl \
-  --seeds=0,1,5
-
-# Project real images
-python run_projector.py project-real-images --network=gdrive:networks/stylegan2-car-config-f.pkl \
-  --dataset=car --data-dir=~/datasets
+python train.py --outdir=~/training-runs --gpus=1 --data=~/datasets/custom --dry-run
+python train.py --outdir=~/training-runs --gpus=1 --data=~/datasets/custom
 ```
 
-## Training networks
+The first command is optional; it will validate the arguments, print out the resulting training configuration, and exit. The second command will kick off the actual training.
 
-To reproduce the training runs for config F in Tables 1 and 3, run:
+In this example, the results will be saved to a newly created directory `~/training-runs/<RUNNING_ID>-custom-auto1` (controlled by `--outdir`). The training will export network pickles (`network-snapshot-<KIMG>.pkl`) and example images (`fakes<KIMG>.png`) at regular intervals (controlled by `--snap`). For each pickle, it will also evaluate FID by default (controlled by `--metrics`) and log the resulting scores in `metric-fid50k_full.txt`.
+
+The name of the output directory (e.g., `00000-custom-auto1`) reflects the hyperparameter configuration that was used. In this case, `custom` indicates the training set (`--data`) and `auto1` indicates the *base configuration* that was used to select the hyperparameters (`--cfg`):
+
+| Base config      | Description
+| :----------      | :----------
+| `auto` (default) | Automatically select reasonable defaults based on resolution and GPU count. Serves as a good starting point for new datasets, but does not necessarily lead to optimal results.
+| `stylegan2`      | Reproduce results for StyleGAN2 config F at 1024x1024 using 1, 2, 4, or 8 GPUs.
+| `paper256`       | Reproduce results for FFHQ and LSUN Cat at 256x256 using 1, 2, 4, or 8 GPUs.
+| `paper512`       | Reproduce results for BreCaHAD and AFHQ at 512x512 using 1, 2, 4, or 8 GPUs.
+| `paper1024`      | Reproduce results for MetFaces at 1024x1024 using 1, 2, 4, or 8 GPUs.
+| `cifar`          | Reproduce results for CIFAR-10 (tuned configuration) using 1 or 2 GPUs.
+| `cifarbaseline`  | Reproduce results for CIFAR-10 (baseline configuration) using 1 or 2 GPUs.
+
+The training configuration can be further customized with additional arguments. Common examples:
+
+* `--aug=noaug` disables ADA (default: enabled).
+* `--mirror=1` amplifies the dataset with x-flips. Often beneficial, even with ADA.
+* `--resume=ffhq1024 --snap=10` performs transfer learning from FFHQ trained at 1024x1024.
+* `--resume=~/training-runs/<RUN_NAME>/network-snapshot-<KIMG>.pkl` resumes where a previous training run left off.
+* `--gamma=10` overrides R1 gamma. We strongly recommend trying out at least a few different values for each new dataset.
+
+Augmentation fine-tuning:
+
+* `--aug=ada --target=0.7` adjusts ADA target value (default: 0.6).
+* `--aug=adarv` selects the alternative ADA heuristic (requires a separate validation set).
+* `--augpipe=blit` limits the augmentation pipeline to pixel blitting only.
+* `--augpipe=bgcfnc` enables all available augmentations (blit, geom, color, filter, noise, cutout).
+* `--cmethod=bcr` enables bCR with small integer translations.
+
+Please refer to [`python train.py --help`](./docs/train-help.txt) for the full list.
+
+## Expected training time
+
+The total training time depends heavily on the resolution, number of GPUs, desired quality, dataset, and hyperparameters. In general, the training time can be expected to scale linearly with respect to the resolution and inversely proportional with respect to the number of GPUs. Small datasets tend to reach their lowest achievable FID faster than larger ones, but the convergence is somewhat less predictable. Transfer learning tends to converge significantly faster than training from scratch.
+
+To give a rough idea of typical training times, the following figure shows several examples of FID as a function of wallclock time. Each curve corresponds to training a given dataset from scratch using `--cfg=auto` with a given number of NVIDIA Tesla V100 GPUs:
+
+![Training curves](./docs/stylegan2-ada-training-curves.png)
+
+Please note that `--cfg=auto` only serves as a reasonable first guess for the hyperparameters &mdash; it does not necessarily lead to optimal results for a given dataset. For example, `--cfg=stylegan2` yields considerably better FID  for FFHQ-140k at 1024x1024 than illustrated above. We recommend trying out at least a few different values of `--gamma` for each new dataset.
+
+## Preparing training set sweeps
+
+In the paper, we perform several experiments using artificially limited/amplified versions of the training data, such as `ffhq30k`, `ffhq140k`, and `lsuncat30k`. These are constructed by first unpacking the original dataset into a temporary directory with `python dataset_tool.py unpack` and then repackaging the appropriate versions into TFRecords with `python dataset_tool.py pack`. In the following examples, the temporary directories are created under `/tmp` and can be safely deleted afterwards.
 
 ```.bash
-python run_training.py --num-gpus=8 --data-dir=~/datasets --config=config-f \
-  --dataset=ffhq --mirror-augment=true
-python run_training.py --num-gpus=8 --data-dir=~/datasets --config=config-f \
-  --dataset=car --total-kimg=57000
-python run_training.py --num-gpus=8 --data-dir=~/datasets --config=config-f \
-  --dataset=cat --total-kimg=88000
-python run_training.py --num-gpus=8 --data-dir=~/datasets --config=config-f \
-  --dataset=church --total-kimg 88000 --gamma=100
-python run_training.py --num-gpus=8 --data-dir=~/datasets --config=config-f \
-  --dataset=horse --total-kimg 100000 --gamma=100
+# Unpack FFHQ images at 256x256 resolution.
+python dataset_tool.py unpack --resolution=256 \
+    --tfrecord_dir=~/ffhq-dataset/tfrecords/ffhq --output_dir=/tmp/ffhq-unpacked
+
+# Create subset with 30k images.
+python dataset_tool.py pack --num_train=30000 --num_validation=10000 --seed=123 \
+    --tfrecord_dir=~/datasets/ffhq30k --unpacked_dir=/tmp/ffhq-unpacked
+
+# Create amplified version with 140k images.
+python dataset_tool.py pack --num_train=70000 --num_validation=0 --mirror=1 --seed=123 \
+    --tfrecord_dir=~/datasets/ffhq140k --unpacked_dir=/tmp/ffhq-unpacked
+
+# Unpack LSUN Cat images at 256x256 resolution.
+python dataset_tool.py unpack --resolution=256 \
+    --tfrecord_dir=~/datasets/lsuncat200k --output_dir=/tmp/lsuncat200k-unpacked
+
+# Create subset with 30k images.
+python dataset_tool.py pack --num_train=30000 --num_validation=10000 --seed=123 \
+    --tfrecord_dir=~/datasets/lsuncat30k --unpacked_dir=/tmp/lsuncat200k-unpacked
 ```
 
-For other configurations, see `python run_training.py --help`.
-
-We have verified that the results match the paper when training with 1, 2, 4, or 8 GPUs. Note that training FFHQ at 1024&times;1024 resolution requires GPU(s) with at least 16 GB of memory. The following table lists typical training times using NVIDIA DGX-1 with 8 Tesla V100 GPUs:
-
-| Configuration | Resolution      | Total kimg | 1 GPU   | 2 GPUs  | 4 GPUs  | 8 GPUs | GPU mem |
-| :------------ | :-------------: | :--------: | :-----: | :-----: | :-----: | :----: | :-----: |
-| `config-f`    | 1024&times;1024 | 25000      | 69d 23h | 36d 4h  | 18d 14h | 9d 18h | 13.3 GB |
-| `config-f`    | 1024&times;1024 | 10000      | 27d 23h | 14d 11h | 7d 10h  | 3d 22h | 13.3 GB |
-| `config-e`    | 1024&times;1024 | 25000      | 35d 11h | 18d 15h | 9d 15h  | 5d 6h  | 8.6 GB  |
-| `config-e`    | 1024&times;1024 | 10000      | 14d 4h  | 7d 11h  | 3d 20h  | 2d 3h  | 8.6 GB  |
-| `config-f`    | 256&times;256   | 25000      | 32d 13h | 16d 23h | 8d 21h  | 4d 18h | 6.4 GB  |
-| `config-f`    | 256&times;256   | 10000      | 13d 0h  | 6d 19h  | 3d 13h  | 1d 22h | 6.4 GB  |
-
-Training curves for FFHQ config F (StyleGAN2) compared to original StyleGAN using 8 GPUs:
-
-![Training curves](./docs/stylegan2-training-curves.png)
-
-After training, the resulting networks can be used the same way as the official pre-trained networks:
+Please note that when training with artifically limited/amplified datasets, the quality metrics (e.g., `fid50k_full`) should still be evaluated against the corresponding original datasets. This can be done by specifying a separate metric dataset for `train.py` and `calc_metrics.py` using the `--metricdata` argument. For example:
 
 ```.bash
-# Generate 1000 random images without truncation
-python run_generator.py generate-images --seeds=0-999 --truncation-psi=1.0 \
-  --network=results/00006-stylegan2-ffhq-8gpu-config-f/networks-final.pkl
+python train.py [OTHER_OPTIONS] --data=~/datasets/ffhq30k --metricdata=~/ffhq-dataset/tfrecords/ffhq
 ```
 
-## Evaluation metrics
+## Reproducing training runs from the paper
 
-To reproduce the numbers for config F in Tables 1 and 3, run:
+The pre-trained network pickles ([`stylegan2-ada/pretrained/paper-fig*`](https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/)) reflect the training configuration the same way as the output directory names, making it straightforward to reproduce a given training run from the paper. For example:
 
 ```.bash
-python run_metrics.py --data-dir=~/datasets --network=gdrive:networks/stylegan2-ffhq-config-f.pkl \
-  --metrics=fid50k,ppl_wend --dataset=ffhq --mirror-augment=true
-python run_metrics.py --data-dir=~/datasets --network=gdrive:networks/stylegan2-car-config-f.pkl \
-  --metrics=fid50k,ppl2_wend --dataset=car
-python run_metrics.py --data-dir=~/datasets --network=gdrive:networks/stylegan2-cat-config-f.pkl \
-  --metrics=fid50k,ppl2_wend --dataset=cat
-python run_metrics.py --data-dir=~/datasets --network=gdrive:networks/stylegan2-church-config-f.pkl \
-  --metrics=fid50k,ppl2_wend --dataset=church
-python run_metrics.py --data-dir=~/datasets --network=gdrive:networks/stylegan2-horse-config-f.pkl \
-  --metrics=fid50k,ppl2_wend --dataset=horse
+# 1. AFHQ Dog
+# paper-fig11a-small-datasets/afhqdog-mirror-paper512-ada.pkl
+python train.py --outdir=~/training-runs --gpus=8 --data=~/datasets/afhqdog \
+    --mirror=1 --cfg=paper512 --aug=ada
+
+# 2. Class-conditional CIFAR-10
+# pretrained/paper-fig11b-cifar10/cifar10c-cifar-ada-best-fid.pkl
+python train.py --outdir=~/training-runs --gpus=2 --data=~/datasets/cifar10c \
+    --cfg=cifar --aug=ada
+
+# 3. MetFaces with transfer learning from FFHQ
+# paper-fig11a-small-datasets/metfaces-mirror-paper1024-ada-resumeffhq1024.pkl
+python train.py --outdir=~/training-runs --gpus=8 --data=~/datasets/metfaces \
+    --mirror=1 --cfg=paper1024 --aug=ada --resume=ffhq1024 --snap=10
+
+# 4. 10k subset of FFHQ with ADA and bCR
+# paper-fig7c-training-set-sweeps/ffhq10k-paper256-ada-bcr.pkl
+python train.py --outdir=~/training-runs --gpus=8 --data=~/datasets/ffhq10k \
+    --cfg=paper256 --aug=ada --cmethod=bcr --metricdata=~/ffhq-dataset/tfrecords/ffhq
+
+# 5. StyleGAN2 config F
+# transfer-learning-source-nets/ffhq-res1024-mirror-stylegan2-noaug.pkl
+python train.py --outdir=~/training-runs --gpus=8 --data=~/ffhq-dataset/tfrecords/ffhq \
+    --res=1024 --mirror=1 --cfg=stylegan2 --aug=noaug --metrics=fid50k
 ```
 
-For other configurations, see the [StyleGAN2 Google Drive folder](https://drive.google.com/open?id=1QHc-yF5C3DChRwSdZKcx1w6K8JvSxQi7).
+**Notes**:
+* You can use fewer GPUs than shown in the above examples. This will only increase the training time &mdash; it will not affect the quality of the results.
+* Example 3 specifies `--snap=10` to export network pickles more frequently than usual. This is recommended, because transfer learning tends to yield very fast convergence.
+* Example 4 specifies `--metricdata` to evaluate quality metrics against the original FFHQ dataset, not the artificially limited 10k subset used for training.
+* Example 5 specifies `--metrics=fid50k` to evaluate FID the same way as in the StyleGAN2 paper (see below).
 
-Note that the metrics are evaluated using a different random seed each time, so the results will vary between runs. In the paper, we reported the average result of running each metric 10 times. The following table lists the available metrics along with their expected runtimes and random variation:
+## Quality metrics
 
-| Metric      | FFHQ config F  | 1 GPU  | 2 GPUs  | 4 GPUs | Description |
-| :---------- | :------------: | :----: | :-----: | :----: | :---------- |
-| `fid50k`    | 2.84 &pm; 0.03 | 22 min | 14 min  | 10 min | [Fr&eacute;chet Inception Distance](https://arxiv.org/abs/1706.08500)
-| `is50k`     | 5.13 &pm; 0.02 | 23 min | 14 min  | 8 min  | [Inception Score](https://arxiv.org/abs/1606.03498)
-| `ppl_zfull` | 348.0 &pm; 3.8 | 41 min | 22 min  | 14 min | [Perceptual Path Length](https://arxiv.org/abs/1812.04948) in Z, full paths
-| `ppl_wfull` | 126.9 &pm; 0.2 | 42 min | 22 min  | 13 min | [Perceptual Path Length](https://arxiv.org/abs/1812.04948) in W, full paths
-| `ppl_zend`  | 348.6 &pm; 3.0 | 41 min | 22 min  | 14 min | [Perceptual Path Length](https://arxiv.org/abs/1812.04948) in Z, path endpoints
-| `ppl_wend`  | 129.4 &pm; 0.8 | 40 min | 23 min  | 13 min | [Perceptual Path Length](https://arxiv.org/abs/1812.04948) in W, path endpoints
-| `ppl2_wend` | 145.0 &pm; 0.5 | 41 min | 23 min  | 14 min | [Perceptual Path Length](https://arxiv.org/abs/1812.04948) without center crop
-| `ls`        | 154.2 / 4.27   | 10 hrs | 6 hrs   | 4 hrs  | [Linear Separability](https://arxiv.org/abs/1812.04948)
-| `pr50k3`    | 0.689 / 0.492  | 26 min | 17 min  | 12 min | [Precision and Recall](https://arxiv.org/abs/1904.06991)
+By default, `train.py` will automatically compute FID for each network pickle. We strongly recommend inspecting `metric-fid50k_full.txt` at regular intervals to monitor the training progress. When desired, the automatic computation can be disabled with `--metrics none` to speed up the training.
 
-Note that some of the metrics cache dataset-specific data on the disk, and they will take somewhat longer when run for the first time.
+Additional quality metrics can also be computed after the training:
+
+```.bash
+# Previous training run: look up options automatically, save result to text file.
+python calc_metrics.py --metrics=pr50k3_full \
+    --network=~/training-runs/00000-ffhq10k-res64-auto1/network-snapshot-000000.pkl
+
+# Pretrained network pickle: specify dataset explicitly, print result to stdout.
+python calc_metrics.py --metrics=fid50k_full --metricdata=~/datasets/ffhq --mirror=1 \
+    --network=https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada/pretrained/ffhq.pkl
+```
+
+The first example will automatically find `training_options.json` stored alongside the network pickle and perform the same operation as if `--metrics pr50k3_full` had been specified during training. The second example will download a pre-trained network pickle, in which case the values of `--mirror` and `--metricdata` have to be specified explicitly.
+
+Note that many of the metrics have a significant one-off cost (up to an hour or more) when they are calculated for the first time using a given dataset. Also note that the evaluation is done using a different random seed each time, so the results will vary if the same metric is computed multiple times.
+
+We employ the following metrics in the ADA paper. The expected execution times correspond to using one Tesla V100 GPU at 1024x1024 and 256x256 resolution:
+
+| Metric        | 1024x1024 | 256x256 | Description |
+| :-----        | :-------: | :-----: | :---------- |
+| `fid50k_full` | 15 min    | 5 min   | Fr&eacute;chet inception distance<sup>[1]</sup> against the full dataset.
+| `kid50k_full` | 15 min    | 5 min   | Kernel inception distance<sup>[2]</sup> against the full dataset.
+| `pr50k3_full` | 20 min    | 10 min  | Precision and recall<sup>[3]</sup> againt the full dataset.
+| `is50k`       | 25 min    | 5 min   | Inception score<sup>[4]</sup> for CIFAR-10.
+
+In addition, all metrics that were used in the [StyleGAN](https://github.com/NVlabs/stylegan) and [StyleGAN2](https://github.com/NVlabs/stylegan2) papers are also supported for backwards compatibility:
+
+| Legacy: StyleGAN2 | 1024x1024 | Description |
+| :---------------- | :-------: | :---------- |
+| `fid50k`          | 15 min    | Fr&eacute;chet inception distance against 50k real images.
+| `kid50k`          | 15 min    | Kernel inception distance against 50k real images.
+| `pr50k3`          | 20 min    | Precision and recall against 50k real images.
+| `ppl2_wend`       | 40 min    | Perceptual path length<sup>[5]</sup> in W at path endpoints against full image.
+
+| Legacy: StyleGAN | 1024x1024 | Description |
+| :--------------- | :-------: | :---------- |
+| `ppl_zfull`      | 40 min    | Perceptual path length in Z for full paths against cropped image.
+| `ppl_wfull`      | 40 min    | Perceptual path length in W for full paths against cropped image.
+| `ppl_zend`       | 40 min    | Perceptual path length in Z at path endpoints against cropped image.
+| `ppl_wend`       | 40 min    | Perceptual path length in W at path endpoints against cropped image.
+| `ls`             | 10 hrs    | Linear separability<sup>[5]</sup> with respect to CelebA attributes.
+
+References:
+1. [GANs Trained by a Two Time-Scale Update Rule Converge to a Local Nash Equilibrium](https://arxiv.org/abs/1706.08500), Heusel et al. 2017
+2. [Demystifying MMD GANs](https://arxiv.org/abs/1801.01401), Bi&nacute;kowski et al. 2018
+3. [Improved Precision and Recall Metric for Assessing Generative Models](https://arxiv.org/abs/1904.06991), Kynk&auml;&auml;nniemi et al. 2019
+4. [Improved Techniques for Training GANs](https://arxiv.org/abs/1606.03498), Salimans et al. 2016
+5. [A Style-Based Generator Architecture for Generative Adversarial Networks](https://arxiv.org/abs/1812.04948), Karras et al. 2018
 
 ## License
 
-Copyright &copy; 2019, NVIDIA Corporation. All rights reserved.
+Copyright &copy; 2020, NVIDIA Corporation. All rights reserved.
 
-This work is made available under the Nvidia Source Code License-NC. To view a copy of this license, visit https://nvlabs.github.io/stylegan2/license.html
+This work is made available under the [Nvidia Source Code License](https://nvlabs.github.io/stylegan2-ada/license.html).
 
 ## Citation
 
 ```
-@article{Karras2019stylegan2,
-  title   = {Analyzing and Improving the Image Quality of {StyleGAN}},
-  author  = {Tero Karras and Samuli Laine and Miika Aittala and Janne Hellsten and Jaakko Lehtinen and Timo Aila},
-  journal = {CoRR},
-  volume  = {abs/1912.04958},
-  year    = {2019},
+@inproceedings{Karras2020ada,
+  title     = {Training Generative Adversarial Networks with Limited Data},
+  author    = {Tero Karras and Miika Aittala and Janne Hellsten and Samuli Laine and Jaakko Lehtinen and Timo Aila},
+  booktitle = {Proc. NeurIPS},
+  year      = {2020}
 }
 ```
 
+## Development
+
+This is a research reference implementation and is treated as a
+one-time code drop.  As such, we do not accept outside code
+contributions in the form of pull requests.
+
 ## Acknowledgements
 
-We thank Ming-Yu Liu for an early review, Timo Viitanen for his help with code release, and Tero Kuosmanen for compute infrastructure.
+We thank David Luebke for helpful comments; Tero Kuosmanen and Sabu Nadarajan for their support with compute infrastructure; and Edgar Sch&ouml;nfeld for guidance on setting up unconditional BigGAN.

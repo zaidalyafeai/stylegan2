@@ -11,7 +11,6 @@ import cv2
 import argparse
 
 import dnnlib
-import config
 import dnnlib.tflib as tflib
 
 import tensorflow
@@ -55,8 +54,7 @@ def generate_dataset_main(n=10000, save_path=None, seed=None, model_res=1024, im
         Z = np.random.RandomState(seed).randn(n*mod_l, Gs.input_shape[1])
     else:
         Z = np.random.randn(n*mod_l, Gs.input_shape[1])
-    Z = Z * random.randint(1,6) # 11
-    W = Gs.components.mapping.run(Z, np.tile(labels, [n*mod_l, 1]), minibatch_size=minibatch_size) # Use mapping network to get unique dlatents for more variation.
+    W = Gs.components.mapping.run(Z, np.tile(random.uniform(0.0, 10.0) * labels, [n*mod_l, 1]), minibatch_size=minibatch_size) # Use mapping network to get unique dlatents for more variation.
     dlatent_avg = Gs.get_var('dlatent_avg') # [component]
     W = (W[np.newaxis] - dlatent_avg) * np.reshape([truncation, -truncation], [-1, 1, 1, 1]) + dlatent_avg # truncation trick and add negative image pair
     W = np.append(W[0], W[1], axis=0)
@@ -109,7 +107,9 @@ def get_resnet_model(save_path, model_res=1024, image_size=256, depth=2, size=0,
     # Build model
     if os.path.exists(save_path):
         print('Loading model')
-        return load_model(save_path)
+        model = load_model(save_path)
+        model.compile(loss=loss, metrics=[], optimizer=optimizer) # By default: adam optimizer, logcosh used for loss.
+        return model
 
     print('Building model')
     model_scale = int(2*(math.log(model_res,2)-1)) # For example, 1024 -> 18
@@ -247,7 +247,7 @@ tflib.init_tf()
 
 model = get_resnet_model(args.model_path, model_res=args.model_res, depth=args.model_depth, size=args.model_size, activation=args.activation, optimizer=args.optimizer, loss=args.loss)
 
-with dnnlib.util.open_url(args.model_url, cache_dir=config.cache_dir) as f:
+with dnnlib.util.open_url(args.model_url) as f:
     generator_network, discriminator_network, Gs_network = pickle.load(f)
 
 def load_Gs():

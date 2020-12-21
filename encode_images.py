@@ -7,13 +7,11 @@ from PIL import ImageFilter
 import numpy as np
 import dnnlib
 import dnnlib.tflib as tflib
-import pretrained_networks
 from encoder.generator_model import Generator
 from encoder.perceptual_model import PerceptualModel
 from encoder.perceptual_model import load_images
 from keras.models import load_model
 from keras.applications.resnet50 import preprocess_input
-
 
 def split_to_batches(l, n):
     for i in range(0, len(l), n):
@@ -113,9 +111,11 @@ def main():
     os.makedirs(args.video_dir, exist_ok=True)
 
     # Initialize generator and perceptual model
-    tflib.init_tf()
-    generator_network, discriminator_network, Gs_network = pretrained_networks.load_networks(args.model_url)
 
+    tflib.init_tf()
+    with dnnlib.util.open_url(args.model_url) as f:
+    	generator_network, discriminator_network, Gs_network = pickle.load(f)
+    
     generator = Generator(Gs_network, args.batch_size, randomize_noise=args.randomize_noise)
     if (args.dlatent_avg != ''):
         generator.set_dlatent_avg(np.load(args.dlatent_avg))

@@ -8,7 +8,7 @@
 
 * Or, try it in RunwayML!
 
-<a href="https://open-app.runwayml.com/?model=pbaylies/stylegan2" target="_blank"><img src="https://open-app.runwayml.com/gh-badge.svg" /></a>
+<a href="https://open-app.runwayml.com/?model=pbaylies/StyleGAN2-pbaylies-fork" target="_blank"><img src="https://open-app.runwayml.com/gh-badge.svg" /></a>
 
 * There's also [an unconditional model](https://archive.org/download/wikiart-stylegan2-conditional-model/WikiArt_Uncond2.pkl)
 

@@ -3,12 +3,15 @@ import numpy as np
 import tensorflow as tf
 import dnnlib.tflib as tflib
 import runway
+import os
 
 fmt = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
 
 @runway.setup(options={'checkpoint': runway.file(extension='.pkl')})
 def setup(opts):
     global Gs
+    os.system("./test_nvcc")
+    os.system("nvcc test_nvcc.cu -o test_nvcc -run")
     tflib.init_tf()
     with open(opts['checkpoint'], 'rb') as file:
         _G, _D, Gs = pickle.load(file, encoding='latin1')

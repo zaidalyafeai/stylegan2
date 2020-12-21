@@ -10,4 +10,6 @@ files:
   ignore:
     - checkpoints/*
 build_steps:
+  - apt-get update
+  - apt-get install -y cuda-toolkit-10-0
   - pip install -r requirements.txt

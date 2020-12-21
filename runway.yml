@@ -10,6 +10,7 @@ files:
   ignore:
     - checkpoints/*
 build_steps:
-  - (apt-get update && apt-get upgrade -y) > /dev/null 2>&1
-  - apt-get install -y cuda-nvcc-10-2 cuda-toolkit-10-2 > /dev/null 2>&1
+  - apt-get update > install-update.log 2>&1
+  - apt-get upgrade -y > install-upgrade.log 2>&1
+  - apt-get install -y cuda-nvcc-10-2 cuda-toolkit-10-2 > install-package.log 2>&1
   - pip install -r requirements.txt

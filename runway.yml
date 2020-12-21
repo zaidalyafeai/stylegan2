@@ -1,7 +1,7 @@
 version: 0.1
 entrypoint: python runway_model.py
 python: 3.6
-cuda: 10.0
+cuda: 10.2
 framework: tensorflow
 spec:
   gpu: True
@@ -10,5 +10,7 @@ files:
   ignore:
     - checkpoints/*
 build_steps:
-  - apt-get install -y cuda-nvcc-10-0 cuda-toolkit-10-0 
+  - apt-get update
+  - apt-get upgrade -y
+  - apt-get install -y cuda-nvcc-10-2 cuda-toolkit-10-2
   - pip install -r requirements.txt

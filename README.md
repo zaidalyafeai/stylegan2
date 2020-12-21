@@ -6,7 +6,16 @@
 
 * Or, [a Colab version, by @Norod](https://github.com/Norod/my-colab-experiments/blob/master/WikiArt_ADA_Example_Generation.ipynb)
 
+* Or, try it in RunwayML!
+
+<a href="https://open-app.runwayml.com/?model=pbaylies/stylegan2" target="_blank"><img src="https://open-app.runwayml.com/gh-badge.svg" /></a>
+
 * There's also [an unconditional model](https://archive.org/download/wikiart-stylegan2-conditional-model/WikiArt_Uncond2.pkl)
+
+* Take a look at the included notebooks for examples
+* Conditional support originally from @davidstap
+* port of my encoder from @robertluxemburg
+* runwayml support from @genekogan
 
 ### Many thanks to @dvschultz for his fork; original README is below:
 

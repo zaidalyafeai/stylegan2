@@ -18,5 +18,5 @@ class Target():
 
     def submit(self, submit_config, host_run_dir):
         from ..submit import run_wrapper, convert_path
-        print('- run_dir: %s' % convert_path(submit_config.run_dir), flush=True)
+        # print('- run_dir: %s' % convert_path(submit_config.run_dir), flush=True)
         return run_wrapper(submit_config)

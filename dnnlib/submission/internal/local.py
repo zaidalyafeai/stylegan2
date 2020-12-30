@@ -13,7 +13,7 @@ class Target():
         pass
 
     def finalize_submit_config(self, submit_config, host_run_dir):
-        print ('Local submit ', end='', flush=True)
+        # print ('Local submit ', end='', flush=True)
         submit_config.run_dir = host_run_dir
 
     def submit(self, submit_config, host_run_dir):

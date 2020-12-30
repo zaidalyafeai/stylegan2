@@ -4,6 +4,62 @@ from PIL import Image
 import urllib.request
 from tqdm import tqdm
 
+import numpy as np
+import PIL.Image
+import sys
+from io import BytesIO
+import IPython.display
+import numpy as np
+from math import ceil
+from PIL import Image, ImageDraw
+import os
+
+from IPython.display import HTML
+from base64 import b64encode
+import imageio
+
+def show_animation(movie_name):
+  mp4 = open(movie_name,'rb').read()
+  data_url = "data:video/mp4;base64," + b64encode(mp4).decode()
+  return HTML("""
+  <video width=400 controls>
+        <source src="%s" type="video/mp4">
+  </video>
+  """ % data_url)
+
+def imshow(a, format='png', jpeg_fallback=True):
+        a = np.asarray(a, dtype=np.uint8)
+        str_file = BytesIO()
+        PIL.Image.fromarray(a).save(str_file, format)
+        im_data = str_file.getvalue()
+        try:
+            disp = IPython.display.display(IPython.display.Image(im_data))
+        except IOError:
+            if jpeg_fallback and format != 'jpeg':
+                print ('Warning: image was too large to display in format "{}"; '
+                        'trying jpeg instead.').format(format)
+                return imshow(a, format='jpeg')
+            else:
+                raise
+        return disp
+
+        
+def clamp(x, minimum, maximum):
+    return max(minimum, min(x, maximum))
+
+def create_image_grid(images, scale=0.25, rows=1):
+    w,h = images[0].size
+    w = int(w*scale)
+    h = int(h*scale)
+    height = rows*h
+    cols = ceil(len(images) / rows)
+    width = cols*w
+    canvas = PIL.Image.new('RGBA', (width,height), 'white')
+    for i,img in enumerate(images):
+        img = img.resize((w,h), PIL.Image.ANTIALIAS)
+        canvas.paste(img, (w*(i % cols), h*(i // cols))) 
+    return canvas
+
 def find_latest_pkl(path):
   curr_best = 0
   latest_pkl = ''

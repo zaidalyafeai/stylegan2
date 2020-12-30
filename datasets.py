@@ -9,7 +9,6 @@ class Dataset:
     def prepare(self, records_path):
         print('resizing images ...')
         out_path = resize(self.path, dim = self.dim)
-        print(out_path)
         print('creating records ...')
         create_from_images(records_path, out_path, shuffle = True)
 

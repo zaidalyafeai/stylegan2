@@ -269,7 +269,7 @@ def run_wrapper(submit_config: SubmitConfig) -> None:
 
     exit_with_errcode = False
     try:
-        print("dnnlib: Running {0}() on {1}...".format(submit_config.run_func_name, submit_config.host_name))
+        # print("dnnlib: Running {0}() on {1}...".format(submit_config.run_func_name, submit_config.host_name))
         start_time = time.time()
 
         run_func_obj = util.get_obj_by_name(submit_config.run_func_name)
@@ -280,7 +280,7 @@ def run_wrapper(submit_config: SubmitConfig) -> None:
         else:
             run_func_obj(**submit_config.run_func_kwargs)
 
-        print("dnnlib: Finished {0}() in {1}.".format(submit_config.run_func_name, util.format_time(time.time() - start_time)))
+        # print("dnnlib: Finished {0}() in {1}.".format(submit_config.run_func_name, util.format_time(time.time() - start_time)))
     except:
         if is_local:
             raise

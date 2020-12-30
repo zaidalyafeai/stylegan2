@@ -689,13 +689,11 @@ def create_celeba(tfrecord_dir, celeba_dir, cx=89, cy=121):
 #----------------------------------------------------------------------------
 
 def create_from_images(tfrecord_dir, image_dir, shuffle):
-    print('Loading images from "%s"' % image_dir)
     image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
     if len(image_filenames) == 0:
         error('No input images found')
 
     img = np.asarray(PIL.Image.open(image_filenames[0]))
-    print(img.shape)
     shape = img.shape
     resolution = img.shape[0]
     channels = img.shape[2] if img.ndim == 3 else 1
@@ -715,9 +713,9 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
                 img = img[np.newaxis, :, :] # HW => CHW
             else:
                 img = img.transpose([2, 0, 1]) # HWC => CHW
-            if img.shape != shape:
-                print("Wrong shape:", image_filenames[order[idx]], img.shape, "should be", shape)
-                continue
+            # if img.shape != shape:
+            #     print("Wrong shape:", image_filenames[order[idx]], img.shape, "should be", shape)
+            #     continue
             tfr.add_image(img)
 
 #----------------------------------------------------------------------------

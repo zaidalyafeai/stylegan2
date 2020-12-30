@@ -1,0 +1,74 @@
+{
+  "G_args": {
+    "func_name": "training.networks.G_main",
+    "fmap_base": 16384,
+    "fmap_max": 512,
+    "mapping_layers": 8,
+    "num_fp16_res": 4,
+    "conv_clamp": 256
+  },
+  "D_args": {
+    "func_name": "training.networks.D_main",
+    "mbstd_group_size": 4,
+    "fmap_base": 16384,
+    "fmap_max": 512,
+    "num_fp16_res": 4,
+    "conv_clamp": 256
+  },
+  "G_opt_args": {
+    "beta1": 0.0,
+    "beta2": 0.99,
+    "learning_rate": 0.002
+  },
+  "D_opt_args": {
+    "beta1": 0.0,
+    "beta2": 0.99,
+    "learning_rate": 0.002
+  },
+  "loss_args": {
+    "func_name": "training.loss.stylegan2",
+    "r1_gamma": 10
+  },
+  "augment_args": {
+    "class_name": "training.augment.AdaptiveAugment",
+    "tune_heuristic": "rt",
+    "tune_target": 0.6,
+    "apply_func": "training.augment.augment_pipeline",
+    "apply_args": {
+      "xflip": 1,
+      "rotate90": 1,
+      "xint": 1,
+      "scale": 1,
+      "rotate": 1,
+      "aniso": 1,
+      "xfrac": 1,
+      "brightness": 1,
+      "contrast": 1,
+      "lumaflip": 1,
+      "hue": 1,
+      "saturation": 1
+    }
+  },
+  "num_gpus": 1,
+  "image_snapshot_ticks": 1,
+  "network_snapshot_ticks": 1,
+  "train_dataset_args": {
+    "path": "dataset/records",
+    "max_label_size": 0,
+    "resolution": 512,
+    "mirror_augment": true
+  },
+  "metric_arg_list": [],
+  "metric_dataset_args": {
+    "path": "dataset/records",
+    "max_label_size": 0,
+    "resolution": 512,
+    "mirror_augment": true
+  },
+  "total_kimg": 10000,
+  "minibatch_size": 32,
+  "minibatch_gpu": 4,
+  "G_smoothing_kimg": 10,
+  "G_smoothing_rampup": null,
+  "run_dir": "ckpts/00000-records-mirror-stylegan2-kimg10000-ada-bgc"
+}

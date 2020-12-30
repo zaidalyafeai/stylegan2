@@ -14,10 +14,12 @@ def find_latest_pkl(path):
 
 def resize(path, dim = (512, 512)):
   dirs = os.listdir(path)
-  out_path = f'{dim[0]}x{dim[1]}'
+  out_path = f'{path}/{dim[0]}x{dim[1]}'
+  os.makedirs(out_path, exist_ok=True)
   for item in dirs:
-    if os.path.isfile(path+item):
-        im = Image.open(path+item)
+    img_path = f'{path}/{item}'
+    if os.path.isfile(img_path):
+        im = Image.open(img_path)
         imResize = im.resize(dim, Image.ANTIALIAS).convert('RGB')
-        imResize.save(f'{path}/{out_path}/{item}', 'JPEG', quality=90)
+        imResize.save(f'{out_path}/{item}', 'JPEG', quality=90)
   return out_path

@@ -1,0 +1,102 @@
+Loading training set...
+Image shape: [3, 512, 512]
+Label shape: [0]
+
+Constructing networks...
+
+G                             Params    OutputShape         WeightShape     
+---                           ---       ---                 ---             
+latents_in                    -         (?, 512)            -               
+labels_in                     -         (?, 0)              -               
+epochs                        1         ()                  ()              
+epochs_1                      1         ()                  ()              
+G_mapping/Normalize           -         (?, 512)            -               
+G_mapping/Dense0              262656    (?, 512)            (512, 512)      
+G_mapping/Dense1              262656    (?, 512)            (512, 512)      
+G_mapping/Dense2              262656    (?, 512)            (512, 512)      
+G_mapping/Dense3              262656    (?, 512)            (512, 512)      
+G_mapping/Dense4              262656    (?, 512)            (512, 512)      
+G_mapping/Dense5              262656    (?, 512)            (512, 512)      
+G_mapping/Dense6              262656    (?, 512)            (512, 512)      
+G_mapping/Dense7              262656    (?, 512)            (512, 512)      
+G_mapping/Broadcast           -         (?, 16, 512)        -               
+dlatent_avg                   -         (512,)              -               
+Truncation/Lerp               -         (?, 16, 512)        -               
+G_synthesis/4x4/Const         8192      (?, 512, 4, 4)      (1, 512, 4, 4)  
+G_synthesis/4x4/Conv          2622465   (?, 512, 4, 4)      (3, 3, 512, 512)
+G_synthesis/4x4/ToRGB         264195    (?, 3, 4, 4)        (1, 1, 512, 3)  
+G_synthesis/8x8/Conv0_up      2622465   (?, 512, 8, 8)      (3, 3, 512, 512)
+G_synthesis/8x8/Conv1         2622465   (?, 512, 8, 8)      (3, 3, 512, 512)
+G_synthesis/8x8/Upsample      -         (?, 3, 8, 8)        -               
+G_synthesis/8x8/ToRGB         264195    (?, 3, 8, 8)        (1, 1, 512, 3)  
+G_synthesis/16x16/Conv0_up    2622465   (?, 512, 16, 16)    (3, 3, 512, 512)
+G_synthesis/16x16/Conv1       2622465   (?, 512, 16, 16)    (3, 3, 512, 512)
+G_synthesis/16x16/Upsample    -         (?, 3, 16, 16)      -               
+G_synthesis/16x16/ToRGB       264195    (?, 3, 16, 16)      (1, 1, 512, 3)  
+G_synthesis/32x32/Conv0_up    2622465   (?, 512, 32, 32)    (3, 3, 512, 512)
+G_synthesis/32x32/Conv1       2622465   (?, 512, 32, 32)    (3, 3, 512, 512)
+G_synthesis/32x32/Upsample    -         (?, 3, 32, 32)      -               
+G_synthesis/32x32/ToRGB       264195    (?, 3, 32, 32)      (1, 1, 512, 3)  
+G_synthesis/64x64/Conv0_up    2622465   (?, 512, 64, 64)    (3, 3, 512, 512)
+G_synthesis/64x64/Conv1       2622465   (?, 512, 64, 64)    (3, 3, 512, 512)
+G_synthesis/64x64/Upsample    -         (?, 3, 64, 64)      -               
+G_synthesis/64x64/ToRGB       264195    (?, 3, 64, 64)      (1, 1, 512, 3)  
+G_synthesis/128x128/Conv0_up  1442561   (?, 256, 128, 128)  (3, 3, 512, 256)
+G_synthesis/128x128/Conv1     721409    (?, 256, 128, 128)  (3, 3, 256, 256)
+G_synthesis/128x128/Upsample  -         (?, 3, 128, 128)    -               
+G_synthesis/128x128/ToRGB     132099    (?, 3, 128, 128)    (1, 1, 256, 3)  
+G_synthesis/256x256/Conv0_up  426369    (?, 128, 256, 256)  (3, 3, 256, 128)
+G_synthesis/256x256/Conv1     213249    (?, 128, 256, 256)  (3, 3, 128, 128)
+G_synthesis/256x256/Upsample  -         (?, 3, 256, 256)    -               
+G_synthesis/256x256/ToRGB     66051     (?, 3, 256, 256)    (1, 1, 128, 3)  
+G_synthesis/512x512/Conv0_up  139457    (?, 64, 512, 512)   (3, 3, 128, 64) 
+G_synthesis/512x512/Conv1     69761     (?, 64, 512, 512)   (3, 3, 64, 64)  
+G_synthesis/512x512/Upsample  -         (?, 3, 512, 512)    -               
+G_synthesis/512x512/ToRGB     33027     (?, 3, 512, 512)    (1, 1, 64, 3)   
+---                           ---       ---                 ---             
+Total                         30276585                                      
+
+
+D                    Params    OutputShape         WeightShape     
+---                  ---       ---                 ---             
+images_in            -         (?, 3, 512, 512)    -               
+labels_in            -         (?, 0)              -               
+512x512/FromRGB      256       (?, 64, 512, 512)   (1, 1, 3, 64)   
+512x512/Conv0        36928     (?, 64, 512, 512)   (3, 3, 64, 64)  
+512x512/Conv1_down   73856     (?, 128, 256, 256)  (3, 3, 64, 128) 
+512x512/Skip         8192      (?, 128, 256, 256)  (1, 1, 64, 128) 
+256x256/Conv0        147584    (?, 128, 256, 256)  (3, 3, 128, 128)
+256x256/Conv1_down   295168    (?, 256, 128, 128)  (3, 3, 128, 256)
+256x256/Skip         32768     (?, 256, 128, 128)  (1, 1, 128, 256)
+128x128/Conv0        590080    (?, 256, 128, 128)  (3, 3, 256, 256)
+128x128/Conv1_down   1180160   (?, 512, 64, 64)    (3, 3, 256, 512)
+128x128/Skip         131072    (?, 512, 64, 64)    (1, 1, 256, 512)
+64x64/Conv0          2359808   (?, 512, 64, 64)    (3, 3, 512, 512)
+64x64/Conv1_down     2359808   (?, 512, 32, 32)    (3, 3, 512, 512)
+64x64/Skip           262144    (?, 512, 32, 32)    (1, 1, 512, 512)
+32x32/Conv0          2359808   (?, 512, 32, 32)    (3, 3, 512, 512)
+32x32/Conv1_down     2359808   (?, 512, 16, 16)    (3, 3, 512, 512)
+32x32/Skip           262144    (?, 512, 16, 16)    (1, 1, 512, 512)
+16x16/Conv0          2359808   (?, 512, 16, 16)    (3, 3, 512, 512)
+16x16/Conv1_down     2359808   (?, 512, 8, 8)      (3, 3, 512, 512)
+16x16/Skip           262144    (?, 512, 8, 8)      (1, 1, 512, 512)
+8x8/Conv0            2359808   (?, 512, 8, 8)      (3, 3, 512, 512)
+8x8/Conv1_down       2359808   (?, 512, 4, 4)      (3, 3, 512, 512)
+8x8/Skip             262144    (?, 512, 4, 4)      (1, 1, 512, 512)
+4x4/MinibatchStddev  -         (?, 513, 4, 4)      -               
+4x4/Conv             2364416   (?, 512, 4, 4)      (3, 3, 513, 512)
+4x4/Dense0           4194816   (?, 512)            (8192, 512)     
+Output               513       (?, 1)              (512, 1)        
+---                  ---       ---                 ---             
+Total                28982849                                      
+
+Exporting sample images...
+Replicating networks across 1 GPUs...
+Initializing augmentations...
+Setting up optimizers...
+Constructing training graph...
+Finalizing training ops...
+Initializing metrics...
+Training for 10000 kimg...
+
+tick 0     kimg 0.1      time 3m 09s       sec/tick 63.2    sec/kimg 493.42  maintenance 125.6  gpumem 8.3   augment 0.000

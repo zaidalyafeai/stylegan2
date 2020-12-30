@@ -11,6 +11,7 @@ import sys, getopt, os
 
 import numpy as np
 import dnnlib
+from dnnlib import EasyDict
 import dnnlib.tflib as tflib
 from dnnlib.tflib import tfutil
 from dnnlib.tflib.autosummary import autosummary
@@ -18,8 +19,6 @@ from dnnlib.tflib.autosummary import autosummary
 from training import misc
 import pickle
 import argparse
-import dnnlib
-from dnnlib import EasyDict
 
 def create_model(config_id = 'config-f', gamma = None, height = 512, width = 512, cond = None):
     train     = EasyDict(run_func_name='training.diagnostic.create_initial_pkl') # Options for training loop.
@@ -97,7 +96,7 @@ def create_model(config_id = 'config-f', gamma = None, height = 512, width = 512
     kwargs.submit_config = copy.deepcopy(sc)
     kwargs.submit_config.run_desc = desc
     dnnlib.submit_diagnostic(**kwargs)
-    return f'network-initial-config-f-{hieght}x{width}-0.pkl'
+    return f'network-initial-config-f-{height}x{width}-0.pkl'
 
 def _str_to_bool(v):
     if isinstance(v, bool):

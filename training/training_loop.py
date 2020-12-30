@@ -100,10 +100,12 @@ def training_loop(
     G_reg_interval          = 4,        # How often the perform regularization for G? Ignored if lazy_regularization=False.
     D_reg_interval          = 16,       # How often the perform regularization for D? Ignored if lazy_regularization=False.
     total_kimg              = 25000,    # Total length of the training, measured in thousands of real images.
-    kimg_per_tick           = 4,        # Progress snapshot interval.
-    image_snapshot_ticks    = 50,       # How often to save image snapshots? None = only save 'reals.png' and 'fakes-init.png'.
-    network_snapshot_ticks  = 50,       # How often to save network snapshots? None = only save 'networks-final.pkl'.
-    resume_pkl              = None,     # Network pickle to resume training from.
+    kimg_per_tick           = 10,        # Progress snapshot interval.
+    image_snapshot_ticks    = 1,       # How often to save image snapshots? None = only save 'reals.png' and 'fakes-init.png'.
+    network_snapshot_ticks  = 1,       # How often to save network snapshots? None = only save 'networks-final.pkl'.
+    resume_pkl              = None,     # Network pickle to resume training from, None = train from scratch.
+    resume_kimg             = 15000,      # Assumed training progress at the beginning. Affects reporting and training schedule.
+    resume_time             = 0.0,      # Assumed wallclock time at the beginning. Affects reporting.
     abort_fn                = None,     # Callback function for determining whether to abort training.
     progress_fn             = None,     # Callback function for updating training progress.
 ):
@@ -133,10 +135,10 @@ def training_loop(
 
     print('Exporting sample images...')
     grid_size, grid_reals, grid_labels = setup_snapshot_image_grid(training_set)
-    save_image_grid(grid_reals, os.path.join(run_dir, 'reals.jpg'), drange=[0,255], grid_size=grid_size)
+    save_image_grid(grid_reals, os.path.join(run_dir, 'reals.png'), drange=[0,255], grid_size=grid_size)
     grid_latents = np.random.randn(np.prod(grid_size), *G.input_shape[1:])
     grid_fakes = Gs.run(grid_latents, grid_labels, is_validation=True, minibatch_size=minibatch_gpu)
-    save_image_grid(grid_fakes, os.path.join(run_dir, 'fakes_init.jpg'), drange=[-1,1], grid_size=grid_size)
+    save_image_grid(grid_fakes, os.path.join(run_dir, 'fakes_init.png'), drange=[-1,1], grid_size=grid_size)
 
     print(f'Replicating networks across {num_gpus} GPUs...')
     G_gpus = [G]
@@ -202,8 +204,6 @@ def training_loop(
     D_reg_op = D_reg_opt.apply_updates(allow_no_op=True)
     Gs_beta_in = tf.placeholder(tf.float32, name='Gs_beta_in', shape=[])
     Gs_update_op = Gs.setup_as_moving_average_of(G, beta=Gs_beta_in)
-    Gs_epochs = tf.placeholder(tf.float32, name='Gs_epochs', shape=[])
-    Gs_epochs_op = Gs.update_epochs(Gs_epochs)
     tflib.init_uninitialized_vars()
     with tf.device('/gpu:0'):
         peak_gpu_mem_op = tf.contrib.memory_stats.MaxBytesInUse()
@@ -236,8 +236,6 @@ def training_loop(
             Gs_nimg = min(Gs_nimg, cur_nimg * G_smoothing_rampup)
         Gs_beta = 0.5 ** (minibatch_size / max(Gs_nimg, 1e-8))
 
-        epochs = float(100 * cur_nimg / (total_kimg * 1000)) # 100 total top k "epochs" in total_kimg
-
         # Run training ops.
         for _repeat_idx in range(minibatch_repeats):
             rounds = range(0, minibatch_size, minibatch_gpu * num_gpus)
@@ -251,7 +249,7 @@ def training_loop(
                 tflib.run([G_train_op, data_fetch_op])
                 if run_G_reg:
                     tflib.run(G_reg_op)
-                tflib.run([D_train_op, Gs_update_op, Gs_epochs_op], {Gs_beta_in: Gs_beta, Gs_epochs: epochs})
+                tflib.run([D_train_op, Gs_update_op], {Gs_beta_in: Gs_beta})
                 if run_D_reg:
                     tflib.run(D_reg_op)
 
@@ -261,7 +259,7 @@ def training_loop(
                     tflib.run(G_train_op)
                     if run_G_reg:
                         tflib.run(G_reg_op)
-                tflib.run([Gs_update_op, Gs_epochs_op], {Gs_beta_in: Gs_beta, Gs_epochs: epochs})
+                tflib.run(Gs_update_op, {Gs_beta_in: Gs_beta})
                 for _round in rounds:
                     tflib.run(data_fetch_op)
                     tflib.run(D_train_op)
@@ -305,7 +303,8 @@ def training_loop(
             # Save snapshots.
             if image_snapshot_ticks is not None and (done or cur_tick % image_snapshot_ticks == 0):
                 grid_fakes = Gs.run(grid_latents, grid_labels, is_validation=True, minibatch_size=minibatch_gpu)
-                save_image_grid(grid_fakes, os.path.join(run_dir, f'fakes{cur_nimg // 1000:06d}.jpg'), drange=[-1,1], grid_size=grid_size)
+                save_image_grid(grid_fakes, os.path.join(run_dir, f'fakes{cur_nimg // 1000:06d}.png'), drange=[-1,1], grid_size=grid_size)
+
             if network_snapshot_ticks is not None and (done or cur_tick % network_snapshot_ticks == 0):
                 pkl = os.path.join(run_dir, f'network-snapshot-{cur_nimg // 1000:06d}.pkl')
                 with open(pkl, 'wb') as f:
@@ -326,5 +325,3 @@ def training_loop(
     print('Exiting...')
     summary_log.close()
     training_set.close()
-
-#----------------------------------------------------------------------------

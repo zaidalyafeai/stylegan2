@@ -130,6 +130,6 @@ dmypy.json
 
 # model checkpoint 
 *.pkl*
-ckpt/*
+ckpts/*
 my_data/* 
 dataset/*

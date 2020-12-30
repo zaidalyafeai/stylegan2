@@ -737,7 +737,7 @@ class Network:
 
         recurse(self.scope, self.list_ops(), list(self._get_vars().items()), 0)
         return layers
-
+    
     def print_layers(self, title: str = None, hide_layers_with_no_params: bool = False) -> None:
         """Print a summary table of the network structure."""
         rows = [[title if title is not None else self.name, "Params", "OutputShape", "WeightShape"]]

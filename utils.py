@@ -1,6 +1,8 @@
 import glob
 import os 
 from PIL import Image
+import urllib.request
+from tqdm import tqdm_notebook
 
 def find_latest_pkl(path):
   curr_best = 0
@@ -23,3 +25,17 @@ def resize(path, dim = (512, 512)):
         imResize = im.resize(dim, Image.ANTIALIAS).convert('RGB')
         imResize.save(f'{out_path}/{item}', 'JPEG', quality=90)
   return out_path
+
+
+
+class DownloadProgressBar(tqdm_notebook):
+    def update_to(self, b=1, bsize=1, tsize=None):
+        if tsize is not None:
+            self.total = tsize
+        self.update(b * bsize - self.n)
+
+# https://stackoverflow.com/a/53877507
+def download_url(url, output_path):
+    with DownloadProgressBar(unit='B', unit_scale=True,
+                             miniters=1, desc=url.split('/')[-1]) as t:
+        urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)

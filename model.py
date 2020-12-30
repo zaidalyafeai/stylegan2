@@ -17,7 +17,7 @@ class Model:
                 
             self.pkl_path = 'surgery.pkl'
             if not os.path.exists(self.pkl_path):
-                source_pkl = create_model()
+                source_pkl = create_model(height=dim[0], width=dim[1])
                 copy_weights(source_pkl, ffhq, self.pkl_path)
 
     def start_training(self, data_path, out_dir):

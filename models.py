@@ -123,15 +123,15 @@ def copy_weights(source_pkl, target_pkl, output_pkl):
             sourceG, sourceD, sourceGs = pickle.load(open(source_pkl, 'rb'))
             targetG, targetD, targetGs = pickle.load(open(target_pkl, 'rb'))
             
-            print('Source:')
-            sourceG.print_layers()
-            sourceD.print_layers() 
-            sourceGs.print_layers()
+            # print('Source:')
+            # sourceG.print_layers()
+            # sourceD.print_layers() 
+            # sourceGs.print_layers()
             
-            print('Target:')
-            targetG.print_layers()
-            targetD.print_layers() 
-            targetGs.print_layers()
+            # print('Target:')
+            # targetG.print_layers()
+            # targetD.print_layers() 
+            # targetGs.print_layers()
             
             targetG.copy_compatible_trainables_from(sourceG)
             targetD.copy_compatible_trainables_from(sourceD)

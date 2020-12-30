@@ -27,7 +27,7 @@ from .. import util
 cuda_cache_path = None
 cuda_cache_version_tag = 'v1'
 do_not_hash_included_headers = True # Speed up compilation by assuming that headers included by the CUDA code never change.
-verbose = True # Print status messages to stdout.
+verbose = False # Print status messages to stdout.
 
 #----------------------------------------------------------------------------
 # Internal helper funcs.

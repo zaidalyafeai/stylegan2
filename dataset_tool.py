@@ -24,7 +24,7 @@ import scipy.ndimage
 import scipy.misc
 import datetime
 from tqdm import tqdm
-
+from utils import log_progress
 from training import dataset
 
 #----------------------------------------------------------------------------
@@ -53,7 +53,7 @@ class TFRecordExporter:
 
         if self.print_progress:
             name = '' if tfr_prefix is None else f' ({tfr_prefix})'
-            print(f'Creating dataset "{tfrecord_dir}"{name}')
+            # print(f'Creating dataset "{tfrecord_dir}"{name}')
         if not os.path.isdir(self.tfrecord_dir):
             os.makedirs(self.tfrecord_dir)
         assert os.path.isdir(self.tfrecord_dir)
@@ -706,7 +706,7 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
 
     with TFRecordExporter(tfrecord_dir, len(image_filenames)) as tfr:
         order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames))
-        for idx in range(order.size):
+        for idx in log_progress(range(order.size)):
             img = np.asarray(PIL.Image.open(image_filenames[order[idx]]))
             if channels == 1:
                 print("Greyscale, adding dimension:", image_filenames[order[idx]], img.shape)

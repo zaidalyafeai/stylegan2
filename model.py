@@ -5,7 +5,7 @@ from utils import download_url
 import os
 
 class Model:
-    def __init__(self, pkl_path = None, dim = (512, 512)):
+    def __init__(self, pkl_path = None, from_scratch= False, dim = (512, 512)):
         self.pkl_path = pkl_path
         self.dim = dim
         if self.pkl_path == None:
@@ -19,6 +19,8 @@ class Model:
             if not os.path.exists(self.pkl_path):
                 source_pkl = create_model(height=dim[0], width=dim[1])
                 copy_weights(ffhq, source_pkl, self.pkl_path)
+            if from_scratch:
+                self.pkl_path = ffhq
 
     def start_training(self, data_path, out_dir):
         run_training(data_path, out_dir, resume = self.pkl_path)

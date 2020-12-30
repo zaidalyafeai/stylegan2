@@ -413,7 +413,7 @@ def setup_training_options(data_path, out_dir, resume = None):
 
 def run_training(data_path, out_dir, resume = None):
 
-    run_desc, training_options, outdir = setup_training_options(data_path, out_dir, resume = None)
+    run_desc, training_options, outdir = setup_training_options(data_path, out_dir, resume = resume)
 
     # Pick output directory.
     prev_run_dirs = []

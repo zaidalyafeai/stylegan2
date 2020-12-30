@@ -762,10 +762,10 @@ class Network:
         rows += [["Total", str(total_params), "", ""]]
 
         widths = [max(len(cell) for cell in column) for column in zip(*rows)]
-        print()
-        for row in rows:
-            print("  ".join(cell + " " * (width - len(cell)) for cell, width in zip(row, widths)))
-        print()
+        # print()
+        # for row in rows:
+        #     print("  ".join(cell + " " * (width - len(cell)) for cell, width in zip(row, widths)))
+        # print()
 
     def setup_weight_histograms(self, title: str = None) -> None:
         """Construct summary ops to include histograms of all trainable parameters in TensorBoard."""

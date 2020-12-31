@@ -10,7 +10,7 @@ Easy impelementation of stylegans2. You can literally train a stylegan2 in less 
   </tr>
   <tr>
     <td class="tg-yw4l">Training</td>
-    <td class="tg-yw4l"><a href="https://colab.research.google.com/github/zaidalyafeai/sgan/blob/master/SGAN_train.ipynb">
+    <td class="tg-yw4l"><a href="https://colab.research.google.com/github/zaidalyafeai/sgan/blob/master/SGAN_Train.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" width = '100px' >
 </a></td>
   </tr>

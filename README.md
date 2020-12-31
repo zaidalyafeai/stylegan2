@@ -14,8 +14,8 @@ from sgan import SGAN
 dataset = Dataset('/path/to/dataset')
 dataset.prepare('path/to/records')
 
-sgan = SGAN()
-sgan.start_training('path/to/records', 'path/to/out')
+model = SGAN()
+model.train(dataset = 'path/to/records', out_dir = 'path/to/out')
 
 ```
 
@@ -25,7 +25,7 @@ A set of functions for vis, interpolation and animation. Mostly tested in colab 
 ### Load Model 
 ```python 
 from sgan import SGAN
-sgan = SGAN('/path/to/pkl')
+model = SGAN(pkl_path = '/path/to/pkl')
 ```
 
 ### Generate random 
@@ -52,7 +52,7 @@ model.generate_animation(size = 2, steps = 20)
 ![alt text](medusa.png)
 
 ### Cats 
-<!-- ![alt text](cats.png) -->
+![alt text](cats.png)
 
 ## References 
 - Gan-surgery: https://github.com/aydao/stylegan2-surgery

@@ -35,7 +35,7 @@ dataset = Dataset('/path/to/dataset')
 dataset.prepare('path/to/records')
 
 model = SGAN()
-model.train(dataset = 'path/to/records', out_dir = 'path/to/out')
+model.train(data_path = 'path/to/records', out_dir = 'path/to/out')
 
 ```
 

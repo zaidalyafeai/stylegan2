@@ -1,7 +1,27 @@
 ## SGAN
-Easy impelementation of stylegans2. You can literally train a stylegan2 in less than 10 lines of code. Use this notebook for a quick start 
-<a href="https://colab.research.google.com/github/zaidalyafeai/sgan/blob/master/demo.ipynb">
-<img src="https://colab.research.google.com/assets/colab-badge.svg" width = '100px' ></a>.
+Easy impelementation of stylegans2. You can literally train a stylegan2 in less than 10 lines of code. 
+
+## Notebooks 
+
+<table class="tg">
+  <tr>
+    <th class="tg-yw4l"><b>Name</b></th>
+    <th class="tg-yw4l"><b>Notebook</b></th>
+  </tr>
+  <tr>
+    <td class="tg-yw4l">Training</td>
+    <td class="tg-yw4l"><a href="https://colab.research.google.com/github/zaidalyafeai/sgan/blob/master/SGAN_train.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" width = '100px' >
+</a></td>
+  </tr>
+  <tr>
+    <td class="tg-yw4l">Visualization</td>
+    <td class="tg-yw4l"><a href="https://colab.research.google.com/github/zaidalyafeai/sgan/blob/master/SGAN_Vis.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" width = '100px' >
+</a></td>
+  </tr>
+</table>
+
 
 ## Tranining 
 In just a few lines you can use style tranfer or train a stylegan from scratch. 
@@ -53,6 +73,9 @@ model.generate_animation(size = 2, steps = 20)
 
 ### Cats 
 ![alt text](cats.png)
+
+### Celebs 
+![alt text](celebs.png)
 
 ## References 
 - Gan-surgery: https://github.com/aydao/stylegan2-surgery

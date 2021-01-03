@@ -74,6 +74,9 @@ model.generate_animation(size = 2, steps = 20)
 ### Cats 
 ![alt text](cats.png)
 
+### Jellfish
+![alt text](jelly.png)
+
 ### Celebs 
 ![alt text](celebs.png)
 

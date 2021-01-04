@@ -23,7 +23,7 @@ Easy impelementation of stylegans2. You can literally train a stylegan2 in less 
 </table>
 
 
-## Tranining 
+## Training 
 In just a few lines you can use style tranfer or train a stylegan from scratch. 
 
 ```python 

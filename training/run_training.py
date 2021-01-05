@@ -28,7 +28,7 @@ class UserError(Exception):
 
 #----------------------------------------------------------------------------
 
-def setup_training_options(data_path, out_dir, resume = None):
+def setup_training_options(data_path, out_dir, resume = None, mirror = True):
 
 ###########################################################################################################################
 #                                                 EDIT THESE!                                                             #
@@ -39,7 +39,7 @@ def setup_training_options(data_path, out_dir, resume = None):
     seed = 1000
     data = data_path# Training dataset (required): <path>
     res = None# Override dataset resolution: <int>, default = highest available
-    mirror =True# Augment dataset with x-flips: <bool>, default = False
+    mirror =mirror# Augment dataset with x-flips: <bool>, default = False
     metrics = []# List of metric names: [], ['fid50k_full'] (default), ...
     metricdata = None# Metric dataset (optional): <path>
     cfg = 'stylegan2'# Base config: 'auto' (default), 'stylegan2', 'paper256', 'paper512', 'paper1024', 'cifar', 'cifarbaseline'
@@ -411,9 +411,9 @@ def setup_training_options(data_path, out_dir, resume = None):
 
 #----------------------------------------------------------------------------
 
-def run_training(data_path, out_dir, resume = None):
+def run_training(data_path, out_dir, resume = None, mirror = True):
 
-    run_desc, training_options, outdir = setup_training_options(data_path, out_dir, resume = resume)
+    run_desc, training_options, outdir = setup_training_options(data_path, out_dir, resume = resume, mirror = mirror)
 
     # Pick output directory.
     prev_run_dirs = []

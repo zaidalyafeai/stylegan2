@@ -44,10 +44,10 @@ class SGAN:
             self._G, self._D, self.Gs = pickle.load(fp)
         self.noise_vars = [var for name, var in self.Gs.components.synthesis.vars.items() if name.startswith('noise')]
     
-    def train(self, data_path = None, out_dir = None):
+    def train(self, data_path = None, out_dir = None, mirror = True):
         assert data_path
         assert out_dir
-        run_training(data_path, out_dir, resume = self.pkl_path)
+        run_training(data_path, out_dir, resume = self.pkl_path, mirror = mirror)
     
     # Generates a list of images, based on a list of latent vectors (Z), and a list (or a single constant) of truncation_psi's.
     def generate_images_in_w_space(self, dlatents, truncation_psi):

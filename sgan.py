@@ -26,7 +26,7 @@ class SGAN:
         self.pkl_path = pkl_path
         self.dim = dim
 
-        if self.pkl_path == None and from_dir == None:
+        if self.pkl_path is None and from_dir is None:
             ffhq_pkl = 'stylegan2-ffhq-config-f.pkl'
             ffhq_url = f'http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/{ffhq_pkl}'
 

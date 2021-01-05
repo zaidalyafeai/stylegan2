@@ -22,11 +22,11 @@ import glob
 class SGAN:
 
     def __init__(self, pkl_path = None, from_scratch= False, dim = (512, 512),
-                from_dir = ''):
+                from_dir = None):
         self.pkl_path = pkl_path
         self.dim = dim
 
-        if self.pkl_path == None:
+        if self.pkl_path == None and from_dir == None:
             ffhq_pkl = 'stylegan2-ffhq-config-f.pkl'
             ffhq_url = f'http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/{ffhq_pkl}'
 
@@ -39,10 +39,11 @@ class SGAN:
                     download_url(ffhq_url, ffhq_pkl)
                 self.pkl_path = 'surgery.pkl'
                 copy_weights(ffhq_pkl, empty_pkl, self.pkl_path)
+
         if from_dir:
             curr_best = 0
-            for pkl_file in glob.glob(f'{path}/*.pkl'):
-                ckpt_number = int(pkl.split('-')[-1][:-4])
+            for pkl_file in glob.glob(f'{from_dir}/*.pkl'):
+                ckpt_number = int(pkl_file.split('-')[-1][:-4])
                 if curr_best < ckpt_number:
                     curr_best = ckpt_number
                     self.pkl_path = pkl_file

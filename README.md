@@ -68,6 +68,8 @@ model.generate_animation(size = 2, steps = 20)
 ### Mosaics 
 ![alt text](mosaic.png)
 
+### Calligraphy 
+![alt text](calligraphy.png)
 ### Medusas
 ![alt text](medusa.png)
 

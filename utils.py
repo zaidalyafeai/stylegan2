@@ -82,7 +82,18 @@ def resize(path, dim = (512, 512)):
         imResize.save(f'{out_path}/{item}', 'JPEG', quality=90)
   return out_path
 
-
+def resize_dirs(path, out_dir, dim = (512, 512)):
+  sub_dirs = os.listdir(path)
+  for sub_dir in sub_dirs:
+    out_path = f'{out_dir}/{sub_dir}'
+    os.makedirs(out_path, exist_ok=True)
+    for item in log_progress(os.listdir(sub_dir)):
+        img_path = f'{path}/{item}'
+        if os.path.isfile(img_path):
+            im = Image.open(img_path)
+            imResize = im.resize(dim, Image.ANTIALIAS).convert('RGB')
+            imResize.save(f'{out_path}/{item}', 'JPEG', quality=90)
+  return out_dir
 
 class DownloadProgressBar(tqdm):
     def update_to(self, b=1, bsize=1, tsize=None):

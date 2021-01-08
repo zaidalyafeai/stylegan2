@@ -87,8 +87,8 @@ def resize_dirs(path, out_dir, dim = (512, 512)):
   for sub_dir in sub_dirs:
     out_path = f'{out_dir}/{sub_dir}'
     os.makedirs(out_path, exist_ok=True)
-    for item in log_progress(os.listdir(sub_dir)):
-        img_path = f'{path}/{item}'
+    for item in log_progress(os.listdir(f'{path}/{sub_dir}/')[:10]):
+        img_path = f'{path}/{sub_dir}/{item}'
         if os.path.isfile(img_path):
             im = Image.open(img_path)
             imResize = im.resize(dim, Image.ANTIALIAS).convert('RGB')
@@ -163,4 +163,3 @@ def log_progress(sequence, every=1, size=None, name='Items'):
             name=name,
             index=str(index or '?')
         )
-

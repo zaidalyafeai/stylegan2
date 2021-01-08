@@ -133,3 +133,4 @@ dmypy.json
 ckpts/*
 my_data/* 
 dataset/*
+commit.sh

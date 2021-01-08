@@ -91,8 +91,9 @@ def create_model(config_id = 'config-f', gamma = None, height = 512, width = 512
     sc.submit_target = dnnlib.SubmitTarget.DIAGNOSTIC
     sc.local.do_not_copy_source_files = True
     kwargs = EasyDict(train)
+    # [EDITED]
     kwargs.update(G_args=G, D_args=D, tf_config=tf_config, config_id=config_id,
-        resolution_h=height, resolution_w=width)
+        resolution_h=height, resolution_w=width, label_size = 2)
     kwargs.submit_config = copy.deepcopy(sc)
     kwargs.submit_config.run_desc = desc
     dnnlib.submit_diagnostic(**kwargs)

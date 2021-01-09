@@ -126,10 +126,13 @@ def training_loop(
         if resume_pkl is not None:
             print(f'Resuming from "{resume_pkl}"')
             with dnnlib.util.open_url(resume_pkl) as f:
-                rG, rD, rGs = pickle.load(f)
-            G.copy_vars_from(rG)
-            D.copy_vars_from(rD)
-            Gs.copy_vars_from(rGs)
+                #[EDITED]
+                G, D, Gs = pickle.load(f)
+                # rG, rD, rGs = pickle.load(f)
+            # G.copy_vars_from(rG)
+            # D.copy_vars_from(rD)
+            # Gs.copy_vars_from(rGs)
+
     G.print_layers()
     D.print_layers()
 

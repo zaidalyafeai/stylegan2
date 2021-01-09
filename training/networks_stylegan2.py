@@ -780,7 +780,8 @@ def D_stylegan2(
     dtype               = 'float32',    # Data type to use for activations and outputs.
     resample_kernel     = [1,3,3,1],    # Low-pass filter to apply when resampling activations. None = no filtering.
     **_kwargs):                         # Ignore unrecognized keyword args.
-
+    saved_args = locals()
+    print("saved_args is", saved_args)
     #resolution_log2 = int(np.log2(resolution))
     #assert resolution == 2**resolution_log2 and resolution >= 4
     assert min_h > 2 and min_w >2 and res_log2>=1

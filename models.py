@@ -20,7 +20,7 @@ from training import misc
 import pickle
 import argparse
 
-def create_model(config_id = 'config-f', gamma = None, height = 512, width = 512, cond = None):
+def create_model(config_id = 'config-f', gamma = None, height = 512, width = 512, cond = None, label_size = 2):
     train     = EasyDict(run_func_name='training.diagnostic.create_initial_pkl') # Options for training loop.
     G         = EasyDict(func_name='training.networks_stylegan2.G_main')       # Options for generator network.
     D         = EasyDict(func_name='training.networks_stylegan2.D_stylegan2')  # Options for discriminator network.
@@ -97,7 +97,7 @@ def create_model(config_id = 'config-f', gamma = None, height = 512, width = 512
     kwargs.submit_config = copy.deepcopy(sc)
     kwargs.submit_config.run_desc = desc
     dnnlib.submit_diagnostic(**kwargs)
-    return f'network-initial-config-f-{height}x{width}-0.pkl'
+    return f'network-initial-config-f-{height}x{width}-{label_size}.pkl'
 
 def _str_to_bool(v):
     if isinstance(v, bool):

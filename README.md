@@ -70,6 +70,10 @@ model.generate_animation(size = 2, steps = 20)
 
 ### Calligraphy 
 ![alt text](calligraphy.png)
+
+### Flowers 
+![alt text](flowers.png)
+
 ### Medusas
 ![alt text](medusa.png)
 

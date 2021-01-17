@@ -75,7 +75,7 @@ class SGAN:
             imgs.append(PIL.Image.fromarray(row_images[0], 'RGB'))
         return imgs       
 
-    def generate_images(self, zs, truncation_psi):
+    def generate_images(self, zs, truncation_psi, class_idx = None):
         Gs_kwargs = dnnlib.EasyDict()
         Gs_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
         Gs_kwargs.randomize_noise = False
@@ -83,11 +83,16 @@ class SGAN:
             truncation_psi = [truncation_psi] * len(zs)
             
         imgs = []
+        label = np.zeros([1] + self.Gs.input_shapes[1][1:])
+        if class_idx is not None:
+            label[:, class_idx] = 1
+        else:
+            label = None
         for z_idx, z in log_progress(enumerate(zs), size = len(zs), name = "Generating images"):
             Gs_kwargs.truncation_psi = truncation_psi[z_idx]
             noise_rnd = np.random.RandomState(1) # fix noise
             tflib.set_vars({var: noise_rnd.randn(*var.shape.as_list()) for var in self.noise_vars}) # [height, width]
-            images = self.Gs.run(z, None, **Gs_kwargs) # [minibatch, height, width, channel]
+            images = self.Gs.run(z, label, **Gs_kwargs) # [minibatch, height, width, channel]
             imgs.append(PIL.Image.fromarray(images[0], 'RGB'))
         return imgs
     

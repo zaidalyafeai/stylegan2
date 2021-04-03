@@ -22,7 +22,7 @@ import glob
 class SGAN:
 
     def __init__(self, pkl_path = None, from_scratch= False, dim = (512, 512),
-                from_dir = None, cond = False):
+                from_dir = None, cond = False, label_size = 0):
         self.pkl_path = pkl_path
         self.dim = dim
 
@@ -30,7 +30,8 @@ class SGAN:
             ffhq_pkl = 'stylegan2-ffhq-config-f.pkl'
             ffhq_url = f'http://d36zk2xti64re0.cloudfront.net/stylegan2/networks/{ffhq_pkl}'
 
-            empty_pkl = create_model(height=dim[0], width=dim[1], cond = cond)
+            empty_pkl = create_model(height=dim[0], width=dim[1], cond = cond,
+            label_size = label_size)
         
             if from_scratch:
                 self.pkl_path = empty_pkl

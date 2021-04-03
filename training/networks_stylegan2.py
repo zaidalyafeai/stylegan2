@@ -523,7 +523,7 @@ def G_synthesis_stylegan2(
     resolution          = 512,         # Output resolution.
     min_h               = 4,
     min_w               = 4,
-    res_log2            = 8,
+    res_log2            = 7,
     use_attention       = False,
     fmap_base           = 16 << 10,     # Overall multiplier for the number of feature maps.
     fmap_decay          = 1.0,          # log2 feature map reduction when doubling the resolution.
@@ -766,7 +766,7 @@ def D_stylegan2(
     resolution          = 512,         # Input resolution. Overridden based on dataset.
     min_h               = 4,            # min height block
     min_w               = 4,            # min width block
-    res_log2            = 8,            # output size [min_h * 2^res_log2, min_w * 2^res_log2]
+    res_log2            = 7,            # output size [min_h * 2^res_log2, min_w * 2^res_log2]
     use_attention       = False,
     label_size          = 0,            # Dimensionality of the labels, 0 if no labels. Overridden based on dataset.
     fmap_base           = 16 << 10,     # Overall multiplier for the number of feature maps.

@@ -410,7 +410,7 @@ def G_synthesis_stylegan_revised(
     dlatents_in,                        # Input: Disentangled latents (W) [minibatch, num_layers, dlatent_size].
     dlatent_size        = 512,          # Disentangled latent (W) dimensionality.
     num_channels        = 3,            # Number of output color channels.
-    resolution          = 1024,         # Output resolution.
+    resolution          = 512,         # Output resolution.
     fmap_base           = 16 << 10,     # Overall multiplier for the number of feature maps.
     fmap_decay          = 1.0,          # log2 feature map reduction when doubling the resolution.
     fmap_min            = 1,            # Minimum number of feature maps in any layer.
@@ -520,7 +520,7 @@ def G_synthesis_stylegan2(
     dlatents_in,                        # Input: Disentangled latents (W) [minibatch, num_layers, dlatent_size].
     dlatent_size        = 512,          # Disentangled latent (W) dimensionality.
     num_channels        = 3,            # Number of output color channels.
-    resolution          = 1024,         # Output resolution.
+    resolution          = 512,         # Output resolution.
     min_h               = 4,
     min_w               = 4,
     res_log2            = 8,
@@ -662,7 +662,7 @@ def D_stylegan(
     images_in,                          # First input: Images [minibatch, channel, height, width].
     labels_in,                          # Second input: Labels1 [minibatch, label_size].
     num_channels        = 3,            # Number of input color channels. Overridden based on dataset.
-    resolution          = 1024,         # Input resolution. Overridden based on dataset.
+    resolution          = 512,         # Input resolution. Overridden based on dataset.
     label_size          = 0,            # Dimensionality of the labels, 0 if no labels. Overridden based on dataset.
     fmap_base           = 16 << 10,     # Overall multiplier for the number of feature maps.
     fmap_decay          = 1.0,          # log2 feature map reduction when doubling the resolution.
@@ -763,7 +763,7 @@ def D_stylegan2(
     images_in,                          # First input: Images [minibatch, channel, height, width].
     labels_in,                          # Second input: Labels [minibatch, label_size].
     num_channels        = 3,            # Number of input color channels. Overridden based on dataset.
-    resolution          = 1024,         # Input resolution. Overridden based on dataset.
+    resolution          = 512,         # Input resolution. Overridden based on dataset.
     min_h               = 4,            # min height block
     min_w               = 4,            # min width block
     res_log2            = 8,            # output size [min_h * 2^res_log2, min_w * 2^res_log2]

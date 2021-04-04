@@ -537,8 +537,7 @@ def G_synthesis_stylegan2(
     fused_modconv       = True,         # Implement modulated_conv2d_layer() as a single fused op?
     **_kwargs):                         # Ignore unrecognized keyword args.
 
-    #resolution_log2 = int(np.log2(resolution))
-    #assert resolution == 2**resolution_log2 and resolution >= 4
+    res_log2 = int(np.log2(resolution))
     assert min_h > 2 and min_w >2 and res_log2>=1
     def nf(stage): return np.clip(int(fmap_base / (2.0 ** (stage * fmap_decay))), fmap_min, fmap_max)
     assert architecture in ['orig', 'skip', 'resnet']
@@ -781,9 +780,9 @@ def D_stylegan2(
     resample_kernel     = [1,3,3,1],    # Low-pass filter to apply when resampling activations. None = no filtering.
     **_kwargs):                         # Ignore unrecognized keyword args.
     saved_args = locals()
-    print("saved_args is", saved_args)
     #resolution_log2 = int(np.log2(resolution))
     #assert resolution == 2**resolution_log2 and resolution >= 4
+    res_log2 = int(np.log2(resolution))
     assert min_h > 2 and min_w >2 and res_log2>=1
     def nf(stage): return np.clip(int(fmap_base / (2.0 ** (stage * fmap_decay))), fmap_min, fmap_max)
     assert architecture in ['orig', 'skip', 'resnet']
